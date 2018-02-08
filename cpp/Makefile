@@ -20,7 +20,7 @@ endif
 ifeq ($(RV), 5)
         RC1=rootcint -f $(TMP1) -c $(HS1)
         RC2=rootcint -f $(TMP2) -c $(HS2)
-        ROOTLIBS=$(ROOTLIBS) -lCint -lNet -lMathCore -lThread
+        ROOTLIBS+=-lCint -lNet -lMathCore -lThread
 endif
 
 all: mol deadbeef badcoffee cdf.so cms.so
