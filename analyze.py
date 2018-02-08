@@ -8,6 +8,7 @@ import autoBook
 from configuration import hw, sw, matching
 import printer
 import plugins
+from plugins import unpack
 import raw
 
 
@@ -104,7 +105,7 @@ def eventMaps(chain, s={}, identityMap=False):
             if iEntry == nMapMin:
                 raw.pruneFeds(chain, s)
 
-            return fillEventMap(iEntry, raw.unpackedHeader(s), forward, forwardBcn, backward)
+            return fillEventMap(iEntry, unpack.unpackedHeader(s), forward, forwardBcn, backward)
 
         nMapMin = 0     # start from beginning
         nMapMax = None  # look at all entries
@@ -135,40 +136,40 @@ def reportProgress(globalEntry, iEvent, iMask):
         return iMask
 
 
-def outerInnerCompare(chain, oEntry, outer, inner, innerEvent, chainI, kargs):
-    kargs["raw1"] = raw.collected(tree=chain, specs=outer)
-
+def outerInnerCompare(oEntry, innerEvent, kargs):
     if innerEvent:
         iEntry = innerEvent[oEntry]
         if iEntry is None:
             oEntry += 1
             return
 
-        if chainI.GetEntry(iEntry) <= 0:
+        if kargs["chainI"].GetEntry(iEntry) <= 0:
             return True  # break!
 
-    if inner:
-        kargs["raw2"] = raw.collected(tree=chainI, specs=inner)
-
-    if not outer["unpack"]:
-        return
-
-    for p in outer["plugins"]:
+    for p in kargs["outer"]["plugins"]:
         f = getattr(eval("plugins.%s" % p), p)
-        f(**kargs)
+        if f(**kargs):
+            break
 
 
-def loop(chain=None, chainI=None, outer={}, inner={}, innerEvent={}, options={}):
+def loop(chain=None, chainI=None, outer={}, inner={}, innerEvent={}, oMapF={}, options={}):
     if outer["progress"]:
         print "Looping:"
 
     kargs = {"book": autoBook.autoBook("book"),
-             "warnQuality": outer["warnQuality"]}
+             "warnQuality": outer["warnQuality"],
+             "raw1": {},
+             "raw2": {},
+             "chain": chain,
+             "chainI": chainI,
+             "outer": outer,
+             "inner": inner}
     kargs.update(options)
 
     try:
         def outerInnerCompare2(chain, iEntry):
-            return outerInnerCompare(chain, iEntry, outer, inner, innerEvent, chainI, kargs)
+            kargs["evn"], kargs["orn"] = oMapF[iEntry]
+            return outerInnerCompare(iEntry, innerEvent, kargs)
 
         nMin = outer["nEventsSkip"]
         nMax = (outer["nEventsSkip"] + outer["nEventsMax"]) if outer["nEventsMax"] else None
@@ -308,7 +309,7 @@ def go(outer={}, inner={}, outputFile="",
                                                            oMapF, oMapB, oMapBcn)
     book = loop(chain=chain, chainI=chainI,
                 outer=outer, inner=inner,
-                innerEvent=innerEvent,
+                innerEvent=innerEvent, oMapF=oMapF,
                 options=options)
 
     utils.delete(chain)
@@ -468,13 +469,13 @@ def processed(options):
         if options.nEventsSkip:
             sys.exit("--sparse-loop does not work with --nevents-skip")
 
-    matching.__okErrF = sw.fedList(options.okErrF)
+    matching.__ignoreCE = options.ignoreCE
     matching.__utcaBcnDelta = options.utcaBcnDelta
     matching.__utcaPipelineDelta = options.utcaPipelineDelta
     printer.__color = not options.noColor
 
     common = subset(options, ["dump", "firstNTs", "lastNAmcs", "nEventsMax", "nEventsSkip", "perTs", "progress", "sparseLoop"])
-    common.update(subset(options, ["noUnpack", "noWarnQuality", "noWarnUnpack"], invert=True))
+    common.update(subset(options, ["noWarnQuality"], invert=True))
     common["crateslots"] = sw.fedList(options.crateslots)
 
     plugins = options.plugins.split(",")

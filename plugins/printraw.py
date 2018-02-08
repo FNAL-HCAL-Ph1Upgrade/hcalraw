@@ -5,7 +5,7 @@ import printer
 def printraw(raw1={}, raw2={}, **_):
     dump = raw1.get(None, {}).get("dump", -99)
     if 1 <= dump:
-        slim1 = (dump in [1, 4]) and (len(raw1) == 2) and (not raw2)
+        slim1 = (dump in [1, 4, 11]) and (len(raw1) == 2) and (not raw2)
         oneEvent(raw1, slim1=slim1)
         oneEvent(raw2)
 
@@ -103,7 +103,7 @@ def oneHtr(iBlock=None, p={}, dump=None, utca=None,
                col,
               ]
     if zs:
-        columns += [" ", "ZSMask:  Thr1, Thr24, ThrTP"]
+        columns += ["ZSMask:  Thr1, Thr24, ThrTP"]
 
     strings = [" %05d" % p["0Word16"],
                " 0x%07x" % p["EvN"],
@@ -112,7 +112,7 @@ def oneHtr(iBlock=None, p={}, dump=None, utca=None,
                "%2d" % p["Crate"],
                "%2d%1s" % (p["Slot"], p["Top"]),
                "%2d" % p.get("FWFlavor", -1),  # absent in uHTR
-               " 0x%01x" % p["FormatVer"],
+               " 0x%01x" % p["PayloadFormat"],
                "  %2d" % p["nPreSamples"],
                ]
     if utca:
@@ -121,14 +121,13 @@ def oneHtr(iBlock=None, p={}, dump=None, utca=None,
     else:
         strings.append("     %3d " % p.get(col, -1))
 
-    if utca or ("Qie" in col):
-        strings.append("      ")
-    else:
+    if p["IsTTP"]:
         strings.append("  TTP ")
+    elif p["IsIO"]:
+        strings.append(" uMNio ")
 
     if zs:
-        strings += ["",
-                    "0x%04x" % zs["Mask"],
+        strings += ["  0x%04x" % zs["Mask"],
                     "  %3d" % zs["Threshold1"],
                     "  %3d" % zs["Threshold24"],
                     "  %3d" % zs["ThresholdTP"],
@@ -147,7 +146,6 @@ def oneHtr(iBlock=None, p={}, dump=None, utca=None,
 
     kargs = {"skipFibers": [0, 1] + range(3, 14) + range(15, 24) if (dump == 4) else [],
              "skipFibChs": [0, 2, 3, 4, 5, 6, 7] if (4 <= dump <= 7) else [],
-             "skipErrF": [],
              "nonMatched": nonMatchedQie,
              "latency": p.get("Latency"),
              "zs": p.get("ZS"),
@@ -155,12 +153,14 @@ def oneHtr(iBlock=None, p={}, dump=None, utca=None,
              "perTs": perTs,
             }
     if dump in [5, 6, 8]:
-        kargs["skipErrF"] = [3]
+        kargs["errorsReq"] = False
     if dump == 10:
-        kargs["skipErrF"] = [0]
+        kargs["errorsReq"] = True
 
     if p["IsTTP"]:
         cd = ttpData(p["ttpInput"], p["ttpOutput"], p["ttpAlgoDep"])
+    if p["IsIO"]:
+        cd = ioData(p)
     else:
         cd = htrChannelData(p["channelData"].values(),
                             crate=p["Crate"],
@@ -310,7 +310,7 @@ def uhtrTriggerData(d={}, dump=None, crate=None, slot=None, top="", nonMatched=[
 
 
 def htrChannelData(lst=[], crate=0, slot=0, top="",
-                   skipFibers=[], skipFibChs=[], skipErrF=[],
+                   skipFibers=[], skipFibChs=[], errorsReq=None,
                    nonMatched=[], latency={}, zs={},
                    te_tdc=False, nTsMax=None, perTs=None):
     out = []
@@ -337,8 +337,11 @@ def htrChannelData(lst=[], crate=0, slot=0, top="",
             continue
         if data["FibCh"] in skipFibChs:
             continue
-        if data["ErrF"] in skipErrF:
-            continue
+        if errorsReq is not None:
+            anything_wrong = data.get("LE", False) or data.get("CE", False) or not all(data.get("OK", []))
+            if errorsReq ^ anything_wrong:
+                continue
+
         red = (crate, slot, top, data["Fiber"], data["FibCh"]) in nonMatched
 
         fields = ["  %2d" % crate,
@@ -384,9 +387,25 @@ def htrChannelData(lst=[], crate=0, slot=0, top="",
                 m = "y" if marks[iChannel] else "n"
             else:
                 m = " "
-            out[-1] += "%7s" % m
+            out[-1] += "%3s" % m
 
     return out
+
+
+def ioData(p):
+    l = []
+    columns = ["   Run ", "EventType", "UserWords"]
+    l.append("   ".join(columns))
+
+    lst = []
+    for (k, v) in sorted(p["UserWords"].iteritems()):
+        if v is None:
+            lst.append("%04x:[None]" % k)
+        else:
+            lst.append("%04x:%08x" % (k, v))
+    w = " ".join(lst)
+    l.append("   ".join(["%8d" % p["Run"], "  %2d    " % p["EventType"], w]))
+    return l
 
 
 def ttpData(ttpInput=[], ttpOutput=[], ttpAlgoDep=[]):

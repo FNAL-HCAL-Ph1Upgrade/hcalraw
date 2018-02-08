@@ -49,15 +49,15 @@ def oparser(arg=""):
                       help="Profile this program.")
 
     plugins = ["Comma-separated list of plugins to run on each event.",
-               "E.g., --plugins=histogram,compare will execute",
-               "first the function compare from plugins/histogram.py",
-               "and then the function foo from plugins/compare.py"
+               "E.g., --plugins=unpack,histogram will execute first",
+               "the function unpack from plugins/unpack.py and",
+               "then the function histogram from plugins/histogram.py"
               ]
     common.add_option("--plugins",
                       dest="plugins",
                       type="str",
-                      metavar="histogram,...",
-                      default="histogram",
+                      metavar="unpack,histogram,...",
+                      default="unpack,histogram",
                       help=" ".join([l.ljust(60) for l in plugins]))
     parser.add_option_group(common)
 
@@ -67,11 +67,6 @@ def oparser(arg=""):
                     default=False,
                     action="store_true",
                     help="Plot from existing .root file (do not look at data).")
-    less.add_option("--no-unpack",
-                    dest="noUnpack",
-                    default=False,
-                    action="store_true",
-                    help="Loop over raw data, but do not unpack it.")
     less.add_option("--last-n-amcs",
                     dest="lastNAmcs",
                     default=0,
@@ -107,11 +102,6 @@ def oparser(arg=""):
                         default=False,
                         action="store_true",
                         help="print TTree entry number (when power of 2)")
-    printing.add_option("--no-warn-unpack",
-                        dest="noWarnUnpack",
-                        default=False,
-                        action="store_true",
-                        help="suppress warnings during unpacking")
     printing.add_option("--no-warn-quality",
                         dest="noWarnQuality",
                         default=False,
@@ -130,17 +120,17 @@ def oparser(arg=""):
 
     dump = ["dump level (default is -1)",
             "-1: only program info, warnings and errors",
-            "0: only summary (no per-event info)",
-            "1: DCC/AMC13 headers",
-            "2: (u)HTR summary info",
-            "3: (u)HTR headers",
-            "4: data (fib=2,14  fibCh=1), formatted compactly",
-            "5: data (fib=all   fibCh=1   ErrF != 3)",
-            "6: data (fib=all   fibCh=1   ErrF != 3); TPs (> 0)",
-            "7: data (fib=all   fibCh=1            ); TPs (> 0)",
-            "8: data (                    ErrF != 3); TPs (> 0)",
-            "9: data (all)                          ; TPs (all)",
-            "10: data(                    ErrF != 0); TPs (!OK)",
+            "0:  only summary (no per-event info)",
+            "1:  DCC/AMC13 headers",
+            "2:  (u)HTR summary info",
+            "3:  (u)HTR headers",
+            "4:  data (fib=2,14  fibCh=1), formatted compactly",
+            "5:  data (fib=all   fibCh=1   OK !LE !CE)",
+            "6:  data (fib=all   fibCh=1   OK !LE !CE); TPs (> 0)",
+            "7:  data (fib=all   fibCh=1             ); TPs (> 0)",
+            "8:  data (                    OK !LE !CE); TPs (> 0)",
+            "9:  data (all)                           ; TPs (all)",
+            "10: data(                    !OK, LE, CE); TPs (!OK)",
             "11: 64bit words; all data and TPs",
             "12: 64(+16)bit words; all data and TPs",
             ]
@@ -174,10 +164,11 @@ def oparser(arg=""):
     parser.add_option_group(match)
 
     matchCh = optparse.OptionGroup(parser, "Options for matching channels across events")
-    matchCh.add_option("--ok-errf",
-                       dest="okErrF",
-                       default="0",
-                       help="Values of ErrF to allow")
+    matchCh.add_option("--ignore-ce",
+                       dest="ignoreCE",
+                       default=False,
+                       action="store_true",
+                       help="Ignore whether CE is asserted")
     matchCh.add_option("--utca-bcn-delta",
                        dest="utcaBcnDelta",
                        default=0,

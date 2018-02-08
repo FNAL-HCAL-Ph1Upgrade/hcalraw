@@ -284,7 +284,7 @@ def htrSummary(blocks=[], book=None, fedId=None,
             a, b = histogramChannelData(book, block, channelData, fedId, caps, ErrF, adcs,
                                         crate2bin, slotCrate,
                                         misMatchMapBins, xAxisLabels, yAxisLabels,
-                                        fedTime, nTsMax, **other)
+                                        fedTime, nTsMax, warn, **other)
             nAdcMatch += a
             nAdcMisMatch += b
 
@@ -363,6 +363,10 @@ def histogramTriggerData(book, block, triggerData, triggerKey, fedId,
     book.fill(len(triggerData["TP"]), "nTpSamples_%d" % fedId, 14, -0.5, 13.5,
               title="FED %d;number of TP samples;Towers / bin" % fedId)
 
+    book.fill(slotCrate, "TP_vs_slot_crate", *misMatchMapBins,
+              title="TP present;slot;crate;Towers / bin",
+              xAxisLabels=xAxisLabels, yAxisLabels=yAxisLabels)
+
     maxTp = -1
     for tp in triggerData["TP"]:
         tp8 = tp & 0xff  # ignore fine-grain bit
@@ -404,7 +408,7 @@ def histogramChannelData(book, block, channelData, fedId,
                          caps, ErrF, adcs, crate2bin,
                          slotCrate, misMatchMapBins,
                          xAxisLabels, yAxisLabels, fedTime, nTsMax,
-                         **other):
+                         warn, **other):
 
     nAdcMatch = 0
     nAdcMisMatch = 0
@@ -453,7 +457,8 @@ def histogramChannelData(book, block, channelData, fedId,
     try:
         tsSoi = channelData["SOI"].index(1)
     except ValueError:
-        printer.warning("%2d:%2d:%2d:%d SoI not found" % (block["Crate"], block["Slot"], channelData["Fiber"], channelData["FibCh"]))
+        if warn:
+            printer.warning("%2d:%2d:%2d:%d SoI not found" % (block["Crate"], block["Slot"], channelData["Fiber"], channelData["FibCh"]))
         tsSoi = None
 
     if channelData["QIE"]:

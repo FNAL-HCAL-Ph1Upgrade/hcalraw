@@ -8,7 +8,9 @@ def files_this_machine(run, nCyclesMax=1):
                  "data/run",
                  "data/FNAL_",
                  "/tmp/USC_",
+                 "/hcaldepot1/data/USC_",
                  "data/B904_Integration_0000",
+                 "data/B904_Integration_10000",
                  "/localdata/B904_Integration_",
                  "/localdata/B904_Integration_10000"]:
         for iCycle in range(nCyclesMax):
@@ -44,11 +46,9 @@ def dirs_global(run):
     minidaq = "%s/eos/cms/store/t0streamer/Minidaq/A/%s/" % (prefix, midfix)
 
     out = []
-    for era in ["Run2017A", "Commissioning2017"]:
-        nzs = "%s/eos/cms/tier0/store/data/%s/HcalNZS/RAW/v1/%s/00000/" % (prefix, era, midfix)
-        mb = "%s/eos/cms/tier0/store/data/%s/MinimumBias/RAW/v1/%s/00000/" % (prefix, era, midfix)
-        out.append(nzs)
-        out.append(mb)
+    for era in ["Run2017B", "Run2017A", "Commissioning2017"]:
+        for subdir in ["HcalNZS", "MinimumBias"]:
+            out.append("%s/eos/cms/tier0/store/data/%s/%s/RAW/v1/%s/00000/" % (prefix, era, subdir, midfix))
     return out
 
 
