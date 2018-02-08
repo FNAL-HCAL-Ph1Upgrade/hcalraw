@@ -1,17 +1,27 @@
-#### Quick Start
+#### Quick Start - FNAL Teststand
+
 ```bash
-ssh lxplus.cern.ch
-git clone https://github.com/elaird/hcalraw.git
+ssh cmslpc-sl6.fnal.gov
+git clone https://github.com/zeratul87/hcalraw.git
 cd hcalraw
+bash
 source env/lxplus6.sh
 cd cpp; make -j 5; cd -
+```
 
+Analyze data from run X (six digit run number)
+```bash
+./fnal_analyze.sh FNAL_X.root plugin_name
+```
+
+Output will be stored in output/plugin_name-FNAL_X.root
+
+
+#### More Examples
 ./look.py 284928
 ./look.py 289555 --nevents=1 --dump=8
 ./look.py 294542 --feds1=1115 --nevents=1000
-```
 
-#### More Examples
 ```bash
 # analyze AMC13/DCC2 monitor buffer dumps
 # HF (USC FEDs):
