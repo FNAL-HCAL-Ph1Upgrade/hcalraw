@@ -14,11 +14,20 @@ from ROOT import TFile, TCanvas, TH1D, gROOT
 
 # Sum over these time slices
 TS_MASK = [3, 4, 5, 6]
+#TS_MASK = [1, 2, 3, 4, 5, 6, 7]
 
 # Number of fibers
-FIBER = 24
+FIBER_CNT = 24
 # Number of channels per fiber
-FIBCH = 8
+FIBCH_CNT = 8
+
+# Crate (FNAL teststand: default 41)
+CRATE = 41
+
+# Slot number (FNAL teststand: default 1)
+SLOT = 1
+
+#def calcMeanRMSfor 
 
 usage = 'usage: %prog [options]'
 parser = optparse.OptionParser(usage)
@@ -41,14 +50,14 @@ c = TCanvas("c","c",1700,1200)
 
 adc_ts_h = {}
 charge_ts_h = {}
-for fib in xrange(0, FIBER):
+for fib in xrange(0, FIBER_CNT):
     if opt.fiberMask != -1:
 	if fib != opt.fiberMask: continue
     adc_ts_h_perfiber = {}
     charge_ts_h_perfiber = {}
-    for fibch in xrange(0, FIBCH):
+    for fibch in xrange(0, FIBCH_CNT):
 	htemp = None
-	htemp = f.Get("ADC_vs_TS_ErrF0_FED_%d_Fib_%d_Ch_%d" %(opt.fedId, fib, fibch))
+	htemp = f.Get("NoTS0_ADC_vs_TS_ErrF0_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" %(opt.fedId, CRATE, SLOT, fib, fibch))
 	try:	
 	    htemp.SetDirectory(0)
 	    #htemp.SetBinContent(1, 0)
@@ -58,7 +67,7 @@ for fib in xrange(0, FIBER):
 	    if opt.warn: print "ADC vs TS in Fib %d Ch %d has no good data" % (fib, fibch)
 	
 	htemp = None
-	htemp = f.Get("Charge_vs_TS_ErrF0_FED_%d_Fib_%d_Ch_%d" % (opt.fedId, fib, fibch))
+	htemp = f.Get("NoTS0_Charge_vs_TS_ErrF0_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" %(opt.fedId, CRATE, SLOT, fib, fibch))
 	try:
 	    htemp.SetDirectory(0)
 	    #htemp.SetBinContent(1, 0)
@@ -68,8 +77,10 @@ for fib in xrange(0, FIBER):
 	    if opt.warn: print "Charge vs TS in Fib %d Ch %d has no good data" % (fib, fibch)
 	
 
-    adc_ts_h.update( {fib:adc_ts_h_perfiber} )
-    charge_ts_h.update( {fib:charge_ts_h_perfiber} )
+    if len(adc_ts_h_perfiber) > 0:
+	adc_ts_h.update( {fib:adc_ts_h_perfiber} )
+    if len(charge_ts_h_perfiber) > 0:
+	charge_ts_h.update( {fib:charge_ts_h_perfiber} )
 
 
 # Done with TFile
@@ -79,39 +90,78 @@ f.Close()
 # h.GetMean(2) Y axis mean
 # h.GetRMS(2)  Y axis rms
 
-mean = TH1D("mean", "Mean ADC", 100, 0,10)
-mean.GetXaxis().SetTitle("Mean [ADC]")
-mean.GetYaxis().SetTitle("Events/bin")
 
-rms = TH1D("rms", "RMS ADC", 100, 0, 10)
-rms.GetXaxis().SetTitle("\sigma [ADC]")
-rms.GetYaxis().SetTitle("Events/bin")
+means = []
+sigmas = []
+charges = []
 
-charge = TH1D("charge", "Total Charge", 100, 0, 200.0)
-charge.GetXaxis().SetTitle("Charge [fC]")
-charge.GetYaxis().SetTitle("Events/bin")
-
-for fib in xrange(0, FIBER):
-    for fibch in xrange(0, FIBCH):
+for fib in xrange(0, FIBER_CNT):
+    for fibch in xrange(0, FIBCH_CNT):
 	try:
-	    mean.Fill(adc_ts_h[fib][fibch].GetMean(2))
-	    rms.Fill(adc_ts_h[fib][fibch].GetRMS(2))
-	   
+	    mean = adc_ts_h[fib][fibch].GetMean(2)
+	    #if mean > 10:
+	    #	print "Fiber %d Ch %d has mean %f" % (fib, fibch, mean)
+	    rms = adc_ts_h[fib][fibch].GetRMS(2)
 	    totQ = 0.0
 	    for i in TS_MASK:
 	    	totQ += charge_ts_h[fib][fibch].GetBinContent(i+1)
+	    #print "Fiber %d Ch %d has total Q: %f" % (fib, fibch, totQ)
+	    means.append(mean)
+	    sigmas.append(rms)
+	    charges.append(totQ)
 
-	    charge.Fill(totQ)
+	    #mean.Fill(adc_ts_h[fib][fibch].GetMean(2))
+	    #rms.Fill(adc_ts_h[fib][fibch].GetRMS(2))
+	   
+	    #totQ = 0.0
+	    #for i in TS_MASK:
+	    #	totQ += charge_ts_h[fib][fibch].GetBinContent(i+1)
+
+	    #charge.Fill(totQ)
 
 	except:
 	    None
 
+mean_min = min(means)
+mean_max = max(means)
+mean_spacing = 0.15 * (mean_max - mean_min)
+
+mean = TH1D("mean", "Mean ADC", 100, mean_min - mean_spacing, mean_max + mean_spacing)
+mean.GetXaxis().SetTitle("Mean [ADC]")
+mean.GetYaxis().SetTitle("Fiber Channels")
+
+for m in means:
+    mean.Fill(m)
+
+rms_min = min(sigmas)
+rms_max = max(sigmas)
+rms_spacing = 0.15 * (rms_max - rms_min)
+
+rms = TH1D("rms", "RMS ADC", 100, rms_min - rms_spacing, rms_max + rms_spacing)
+rms.GetXaxis().SetTitle("#sigma [ADC]")
+rms.GetYaxis().SetTitle("Fiber Channels")
+
+for s in sigmas:
+    rms.Fill(s)
+
+
+charge_min = min(charges)
+charge_max = max(charges)
+charge_spacing = 0.15 * (charge_max - charge_min)
+
+charge = TH1D("charge", "Total Charge", 100, charge_min - charge_spacing, charge_max + charge_spacing)
+charge.GetXaxis().SetTitle("Charge [fC]")
+charge.GetYaxis().SetTitle("FIber Channels")
+
+for q in charges:
+    charge.Fill(q)
+
 mean.Draw()
-c.SaveAs("mean_ADC.jpg")
+c.SaveAs("mean_ADC.png")
 rms.Draw()
-c.SaveAs("rms_ADC.jpg")
+c.SaveAs("rms_ADC.png")
 charge.Draw()
-c.SaveAs("charge.jpg")
+c.SaveAs("charge.png")
 
 outF = TFile.Open("mean_rms_totQ_FED_%d.root" % opt.fedId, 'RECREATE')
 outF.cd()
