@@ -69,7 +69,9 @@ def report(fileNames):
 
 
 def override(options, run, nRuns):
-    options.outputFile = "output/%d.root" % run
+    # Only override output file name if default
+    if options.outputFile == "output/latest.root":
+	options.outputFile = "output/%d.root" % run
     if not options.nEventsMax:
         options.nEventsMax = 4
 

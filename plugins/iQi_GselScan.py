@@ -132,19 +132,19 @@ def iQi_GselScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fals
 					  title="TDC iQi Gsel Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Gsel setting index;TDC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
 			   
 			    
-			    book.fill((ts, adc), "ADC_vs_TS_%s_Gsel_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, int(GSEL_CODES[scan_bin]), fedId, crate, slot, fib, fibCh),
+			    book.fill((ts, adc), "ADC_vs_TS_%s_gsel_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, int(GSEL_CODES[scan_bin]), fedId, crate, slot, fib, fibCh),
 				      nTsMax, -0.5, nTsMax-0.5,
-				      title="ADC vs TS  Gsel %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (GSEL_CODES[scan_bin], fedId, crate, slot, fib, fibCh, eq))
+				      title="ADC vs TS  Gsel %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;ADC;Counts / bin" % (GSEL_CODES[scan_bin], fedId, crate, slot, fib, fibCh, eq))
 
-			    book.fill((ts, adc), "ADC_vs_TS_%s_Gsel_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, int(GSEL_CODES[scan_bin]), fedId, crate, slot, fib, fibCh),
+			    book.fill((ts, adc), "ADC_vs_TS_%s_gsel_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, int(GSEL_CODES[scan_bin]), fedId, crate, slot, fib, fibCh),
 				      (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax-0.5, nAdcMax-0.5),
-				      title="ADC vs TS  Gsel %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (GSEL_CODES[scan_bin], fedId, crate, slot, fib, fibCh, eq))
+				      title="ADC vs TS  Gsel %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;ADC;Counts / bin" % (GSEL_CODES[scan_bin], fedId, crate, slot, fib, fibCh, eq))
 
-			    book.fill((ts, charge), "Charge_vs_TS_%s_Gsel_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, int(GSEL_CODES[scan_bin]), fedId, crate, slot, fib, fibCh),
+			    book.fill((ts, charge), "Charge_vs_TS_%s_gsel_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, int(GSEL_CODES[scan_bin]), fedId, crate, slot, fib, fibCh),
 				      nTsMax, -0.5, nTsMax-0.5,
 				      title="Charge vs TS  Gsel %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (GSEL_CODES[scan_bin], fedId, crate, slot, fib, fibCh, eq))
 
-			    book.fill((ts, charge), "Charge_vs_TS_%s_Gsel_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, int(GSEL_CODES[scan_bin]), fedId, crate, slot, fib, fibCh),
+			    book.fill((ts, charge), "Charge_vs_TS_%s_gsel_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, int(GSEL_CODES[scan_bin]), fedId, crate, slot, fib, fibCh),
 				      (nTsMax, 100), (-0.5, -0.5), (nTsMax-0.5, 20000),
 				      title="Charge vs TS  Gsel %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (GSEL_CODES[scan_bin], fedId, crate, slot, fib, fibCh, eq))
 			  
