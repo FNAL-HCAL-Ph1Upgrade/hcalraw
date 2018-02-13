@@ -11,7 +11,7 @@ import ROOT
 from ROOT import TFile, TCanvas, TH1D, gROOT, gStyle, gPad
 import os
 from datetime import datetime
-
+from subprocess import call
 # Number of fibers
 FIBER_CNT = 24
 # Number of channels per fiber
@@ -26,6 +26,10 @@ SLOT = 1
 # Valid Gsel settings
 GSEL_CODES = [0b00000, 0b00001, 0b00010, 0b00100, 0b01000, 0b10000, 0b10010, \
               0b10100, 0b11000, 0b11010, 0b11100, 0b11110, 0b11111]
+
+FIBER = 21 
+FIBCH = 7
+
 
 #############################################
 #  Quiet                                    #
@@ -47,7 +51,8 @@ def Quiet(func, level = ROOT.kInfo + 1):
 usage = 'usage: %prog [options]'
 parser = optparse.OptionParser(usage)
 parser.add_option('-i', '--inF', dest='inF', help='input file', default=None, type='string')
-parser.add_option('-t', '--scan', dest='scan', help='scan type (gsel or phase)', default="gsel", type='string')
+parser.add_option('-o', '--outF', dest='outF', help='output file name', default="", type='string')
+parser.add_option('-s', '--scan', dest='scan', help='scan type (gsel or phase)', default="", type='string')
 parser.add_option('-f', '--frames', dest='frames', help='frames to use', default=0, type='int')
 parser.add_option('-e', '--fedId', dest='fedId', help='fed Id', default=1776, type='int')
 parser.add_option('-w', '--warn', dest='warn', help='warn on errors (0 or 1)', default=0, type='int')
@@ -72,7 +77,7 @@ try:
     elif opt.scan == "phase":
 	FRAMES = 114
     else:
-	print "Unrecognized option: %s  (hint: gsel or phase)"
+	print "Unrecognized --scan option  (hint: gsel or phase)"
 	sys.exit()
 
     if opt.frames > 0:
@@ -84,7 +89,8 @@ print "Loading histograms from file %s.." % opt.inF,
 histos = []
 for i in range(FRAMES):
     htemp = None
-    htemp = f.Get("ADC_vs_TS_ErrF0_%s_%d_FED_1776_Crate_41_Slot_1_Fib_4_Ch_4_2D" % (opt.scan, i if opt.scan != "gsel" else GSEL_CODES[i]))
+    #htemp = f.Get("ADC_vs_TS_ErrF0_%s_%d_FED_1776_Crate_41_Slot_1_Fib_4_Ch_4_2D" % (opt.scan, i if opt.scan != "gsel" else GSEL_CODES[i]))
+    htemp = f.Get("ADC_vs_TS_ErrF0_%s_%d_FED_1776_Crate_41_Slot_1_Fib_%d_Ch_%d_2D" % (opt.scan, i if opt.scan != "gsel" else GSEL_CODES[i], FIBER, FIBCH))
     try:
 	htemp.SetDirectory(0)
 	histos.append(htemp)
@@ -101,9 +107,11 @@ print "done!"
 print "Drawing frames...",
 sys.stdout.flush()
 maxADC = 75 if opt.scan == "phase" else 150
+#maxADC = 20000
 
-tempdir = "_tmp_" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+tempdir = "_tmpGif_" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 os.mkdir(tempdir)
+tempfiles = ""
 for i, h in enumerate(histos):
     h.SetAxisRange(0., maxADC, "Y")
     h.Draw("COLZ")
@@ -114,17 +122,35 @@ for i, h in enumerate(histos):
     st.SetX2NDC(0.9)
     st.SetY2NDC(0.9)
 
-    if i < 10:
-	run = "00" + str(i)
-    elif i < 100:
-	run = "0" + str(i)
-    else:
-	run = str(i)
+#    if i < 10:
+#	run = "00" + str(i)
+#    elif i < 100:
+#	run = "0" + str(i)
+#    else:
+#	run = str(i)
     #c.SaveAs("tmp/tmp_phase%s.png" % run)
-    Quiet(c.SaveAs)(tempdir + "/tmp_%s_%s.png" % (opt.scan, run))
+    tempfiles += "tmp_%s.png\n" % i
+    Quiet(c.SaveAs)(tempdir + "/tmp_%s.png" % i)
 print "done!"
-print "Creating gif...", 
+
+path,outf = os.path.split(opt.outF)
+if opt.outF != "" and (path == "" or os.path.exists(path)):
+    name = os.path.abspath(path) + "/" + outf
+    if os.path.splitext(outf)[1] != ".gif":
+	name += ".gif"
+
+else:
+    name = os.getcwd() + "/" + os.path.splitext(os.path.basename(opt.inF))[0] + "-%s_scan.gif" % opt.scan
+    #name = os.path.splitext(os.path.abspath(os.path.split(opt.inF)[0]) + "/" + os.path.basename(opt.inF))[0] + "-%s_scan.gif" % opt.scan
+
+print "Creating gif %s ..." % name, 
 sys.stdout.flush()
-os.system("convert -delay %d -loop 0 %s/*.png %s_scan.gif" % (20 if opt.scan == "phase" else 30,tempdir, opt.scan))
+
+if opt.scan == "phase":
+    command = "convert -loop 0 -delay 20 @file.tx -delay 150 tmp_%d.png %s" % (FRAMES-1, name)
+    os.system("cd %s" % tempdir + ";echo '%s' > file.tx" % tempfiles + ";" + command + ";cd ..")
+elif opt.scan == "gsel":
+    command = "convert -loop 0 -delay 50 @file.tx -delay 150 tmp_%d.png %s" % (FRAMES-1, name)
+    os.system("cd %s" % tempdir + ";echo '%s' > file.tx" % tempfiles + ";" + command + ";cd ..")
 print "done!"
 os.system("rm -rf %s" % tempdir)
