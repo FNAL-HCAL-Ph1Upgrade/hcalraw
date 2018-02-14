@@ -123,7 +123,12 @@ def iQi_GselScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fals
 				      "Charge_iQi_GselScan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
 				      MAX_SETTINGS, -0.5, MAX_SETTINGS - 0.5,
 				      title="Charge iQi Gsel Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Gsel setting index;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-			    
+			   
+			    # TS 2
+			    if ts == 2:
+				book.fill((evt, adc), "TS_2_ADC_vs_EvtNum_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh), (1300, nAdcMax), (-0.5, -0.5), (1299.5, nAdcMax - 0.5), title="ADC vs Event Number  TS 2 FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Event number;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))  
+				#book.fill(adc, "TS_2_ADC_vs_EvtNum_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh), nAdcMax, -0.5, nAdcMax - 0.5, title="ADC vs Event Number  TS 2 FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Event number;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq)) 
+
 			    tdc = channelData["TDC"][ts]
 			    if adc > ADC_THRESHOLD: 
 				book.fill((scan_bin, tdc),
