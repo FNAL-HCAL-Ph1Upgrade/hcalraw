@@ -3,14 +3,15 @@ import sys
 import time
 import utils
 
-r = utils.ROOT()
+#r = utils.ROOT()
+import ROOT as r
 import autoBook
 from configuration import hw, sw, matching
 import printer
 import plugins
 from plugins import unpack
 import raw
-
+from pprint import pprint
 
 def import_plugins(names=[]):
     for p in names:
@@ -46,7 +47,7 @@ def chainLoopSparse(chain, nEntries, callback, nPerTree, progress=False):
             tree.GetEntry(iTreeEntry)  # fixme: protect?
             entry = iTreeFirstEntry + iTreeEntry
             nSeen += 1
-            # print "nTree %d  iTreeEntry %d   entry %d   nSeen %d" % (nTree, iTreeEntry, entry, nSeen)
+            #print("nTree %d  iTreeEntry %d   entry %d   nSeen %d" % (nTree, iTreeEntry, entry, nSeen))
 
             if callback(chain, entry):
                 return
@@ -57,7 +58,7 @@ def chainLoopSparse(chain, nEntries, callback, nPerTree, progress=False):
             if nEntries != None and nEntries <= nSeen:
                 return
 
-        # tree.PrintCacheStats()
+        #tree.PrintCacheStats()
         iTreeFirstEntry += nTreeEntries
 
 
@@ -67,7 +68,6 @@ def chainLoop(chain, iEntryStart, iEntryStop, callback, progress=False, sparseLo
         return
 
     iMask = 0
-
     iEntry = iEntryStart
     while iEntry != iEntryStop:
         if chain.GetEntry(iEntry) <= 0:
@@ -98,7 +98,7 @@ def eventMaps(chain, s={}, identityMap=False):
     forwardBcn = {}
 
     if s["progress"]:
-        print "Mapping %s:" % s["label"]
+        print("Mapping %s:" % s["label"])
 
     try:
         def fillEventMap2(chain, iEntry):
@@ -154,7 +154,7 @@ def outerInnerCompare(oEntry, innerEvent, kargs):
 
 def loop(chain=None, chainI=None, outer={}, inner={}, innerEvent={}, oMapF={}, options={}):
     if outer["progress"]:
-        print "Looping:"
+        print("Looping:")
 
     kargs = {"book": autoBook.autoBook("book"),
              "warnQuality": outer["warnQuality"],
@@ -173,6 +173,7 @@ def loop(chain=None, chainI=None, outer={}, inner={}, innerEvent={}, oMapF={}, o
 
         nMin = outer["nEventsSkip"]
         nMax = (outer["nEventsSkip"] + outer["nEventsMax"]) if outer["nEventsMax"] else None
+        #pprint(outer)
         chainLoop(chain, nMin, nMax, outerInnerCompare2,
                   progress=outer["progress"], sparseLoop=outer["sparseLoop"])
 
@@ -196,7 +197,7 @@ def inner_vars(outer, inner, mapOptions, oMapF, oMapB, oMapBcn):
             sys.exit("No common events found.  Consider passing --identity-map.")
 
         if mapOptions['printEventMap']:
-            for oEntry, iEntry in sorted(innerEvent.iteritems()):
+            for oEntry, iEntry in sorted(innerEvent.items()):
                 printer.msg(", ".join(["oEntry = %s" % str(oEntry),
                                        "oEvnOrn = %s" % str(oMapF[oEntry]),
                                        "iEntry = %s" % str(iEntry),
@@ -210,7 +211,7 @@ def inner_vars(outer, inner, mapOptions, oMapF, oMapB, oMapBcn):
 
 def category_vs_time(oMap={}, oMapBcn={}, iMap={}, iMapBcn={}, innerEvent={}):
     d = {}
-    for oEntry, (evn, orn) in oMap.iteritems():
+    for oEntry, (evn, orn) in oMap.items():
         bcn = oMapBcn[oEntry]
         time = hw.minutes(orn, bcn)
         if innerEvent.get(oEntry) is not None:
@@ -219,7 +220,7 @@ def category_vs_time(oMap={}, oMapBcn={}, iMap={}, iMapBcn={}, innerEvent={}):
             d[time] = (2, evn, orn, bcn)
 
     iEntries = innerEvent.values()
-    for iEntry, (evn, orn) in iMap.iteritems():
+    for iEntry, (evn, orn) in iMap.items():
         if iEntry in iEntries:
             continue
         bcn = iMapBcn[iEntry]
@@ -273,7 +274,7 @@ def graphs(d={}, oFed=None, iFed=None):
 
 def eventToEvent(mapF={}, mapB={}):
     out = {}
-    for oEntry, evnOrn in mapF.iteritems():
+    for oEntry, evnOrn in mapF.items():
         out[oEntry] = None
         if evnOrn in mapB:
             out[oEntry] = mapB[evnOrn]
@@ -319,7 +320,7 @@ def go(outer={}, inner={}, outputFile="",
     # write results to a ROOT file
     dirName = os.path.dirname(outputFile)
     if not os.path.exists(dirName):
-        print "Creating directory '%s'" % dirName
+        print("Creating directory '%s'" % dirName)
         os.mkdir(dirName)
 
     f = r.TFile(outputFile, "RECREATE")
@@ -339,7 +340,7 @@ def go(outer={}, inner={}, outputFile="",
     if printEventSummary(outer, inner):
         s = "%s: %4s = %6d" % (outputFile, outer["label"], len(oMapF))
         if inner:
-            nBoth = len(filter(lambda x: x is not None, innerEvent.values()))
+            nBoth = len(list(filter(lambda x: x is not None, innerEvent.values())))
             s += ", %4s = %6d, both = %6d" % (inner["label"], len(iMapB), nBoth)
         printer.msg(s)
 
@@ -391,7 +392,7 @@ def printChannelSummary(outputFile):
         printer.info("suppressed printing of match histogram (more than 10 different occupancies)")
     else:
         for line in lines:
-            print line
+            print(line)
 
     f.Close()
 
@@ -483,7 +484,7 @@ def processed(options):
         plugins.append("printraw")
     if options.file2 and "compare" not in plugins:
         plugins.append("compare")
-    common["plugins"] = filter(lambda x: x, plugins)
+    common["plugins"] = list(filter(lambda x: x, plugins))
 
     outer = {"fedIds": sw.fedList(options.feds1),
              "label": "files1",

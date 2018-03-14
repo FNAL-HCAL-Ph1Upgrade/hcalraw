@@ -29,21 +29,20 @@ def iQi_phaseScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fal
         if not raw:
             continue
 
-	nTsMax = raw[None]["firstNTs"]
+        nTsMax = raw[None]["firstNTs"]
         #print "nTsMax = ", nTsMax
-	for fedId, dct in sorted(raw.iteritems()):
-	    if fedId is None:
+        for fedId, dct in raw.items():
+            if fedId is None:
                 continue
-            
-	    h = dct["header"]
-	    # Event number 
-	    evt = h["EvN"]
+                
+            h = dct["header"]
+            # Event number 
+            evt = h["EvN"]
 
             # get the important chunks of raw data
             blocks = dct["htrBlocks"].values()
-	    #pprint(blocks)
-	    # sanity checks for chunks
-	    
+            # sanity checks for chunks
+            
             #for block in blocks:
             for i, block in enumerate(blocks):
                 if type(block) is not dict:
@@ -52,109 +51,110 @@ def iQi_phaseScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fal
                 elif "channelData" not in block:
                     printer.warning("FED %d block has no channelData" % fedId)
                     continue
-	
-		crate = block["Crate"]
-		slot = block["Slot"]
+        
+                crate = block["Crate"]
+                slot = block["Slot"]
 
-		#with open("block%d.log"%i, "a+") as f:
-		#    pprint(block, stream=f)
+                #with open("block%d.log"%i, "a+") as f:
+                #    pprint(block, stream=f)
 
-		for channelData in block["channelData"].values():
-		    #pprint(channelData)
-		    #print "Fiber %d Ch %d  errf = %s"%(channelData["Fiber"], channelData["FibCh"], channelData["ErrF"])
-		    if channelData["QIE"]:
-			# check error flags
-			errf = "ErrFNZ" if channelData["ErrF"] else "ErrF0"
-			# Clean or problematic error flag
-			eq = "!=" if channelData["ErrF"] else "=="
+                for channelData in block["channelData"].values():
+                    #pprint(channelData)
+                    #print "Fiber %d Ch %d  errf = %s"%(channelData["Fiber"], channelData["FibCh"], channelData["ErrF"])
+                    if channelData["QIE"]:
+                        # check error flags
+                        errf = "ErrFNZ" if channelData["ErrF"] else "ErrF0"
+                        # Clean or problematic error flag
+                        eq = "!=" if channelData["ErrF"] else "=="
 
-			nAdcMax = 256
-					
-			# ts: time slice
-			for (ts, adc) in enumerate(channelData["QIE"]):
-			    if nTsMax <= i:
-				break
+                        nAdcMax = 256
+                                
+                        # ts: time slice
+                        for (ts, adc) in enumerate(channelData["QIE"]):
+                            if nTsMax <= i:
+                                break
 
-			    #if channelData.get("TDC"):
-		    		#print "TS %d channelData['TDC'] = %s" % (i, channelData["TDC"])
+                            #if channelData.get("TDC"):
+                                #print "TS %d channelData['TDC'] = %s" % (i, channelData["TDC"])
 
-			    fib = channelData["Fiber"]
-			    fibCh = channelData["FibCh"]
+                            fib = channelData["Fiber"]
+                            fibCh = channelData["FibCh"]
 
-			    # Determine the setting by which bin the event falls into
-			    scan_bin = -1
-			    for b, lim in enumerate(phase_bins):
-				if evt < lim:
-				    scan_bin = b - 1
-				    break
+                            # Determine the setting by which bin the event falls into
+                            scan_bin = -1
+                            for b, lim in enumerate(phase_bins):
+                                if evt < lim:
+                                    scan_bin = b - 1
+                                    break
 
-			    # Ignore events which fall outside the bin range
-			    if scan_bin < 0: continue
+                            # Ignore events which fall outside the bin range
+                            if scan_bin < 0: continue
 
-			    book.fill((scan_bin, adc),
-				      "ADC_phase_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
-				      (MAX_SETTINGS, nAdcMax), (-0.5, -0.5), (MAX_SETTINGS - 0.5, nAdcMax - 0.5),
-				      title="ADC Phase Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Phase scan index;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-			   
+                            book.fill((scan_bin, adc),
+                                  "ADC_phase_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
+                                  (MAX_SETTINGS, nAdcMax), (-0.5, -0.5), (MAX_SETTINGS - 0.5, nAdcMax - 0.5),
+                                  title="ADC Phase Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Phase scan index;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+                           
+                            if (fib == 4 and fibCh == 4):
+                                book.fill((ts, adc), "ADC_vs_TS_%s_phase_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, scan_bin, fedId, crate, slot, fib, fibCh),
+                                  (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax-0.5, nAdcMax-0.5),
+                                  title="ADC vs TS  Phase scan index %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;ADC;Counts / bin" % (scan_bin, fedId, crate, slot, fib, fibCh, eq))
+                                #book.fill((ts, adc), "ADC_vs_TS_%s_phase_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, scan_bin, fedId, crate, slot, fib, fibCh),
+                                #  nTsMax, -0.5, nTsMax-0.5,
+                                #  title="ADC vs TS  Phase scan index %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;ADC;Counts / bin" % (scan_bin, fedId, crate, slot, fib, fibCh, eq))
 
-			    book.fill((scan_bin, adc),
-				      "ADC_phase_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
-				      MAX_SETTINGS, -0.5, MAX_SETTINGS - 0.5,
-				      title="ADC Phase Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Phase scan index;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-			    
-			    
-			    charge = float(adcCharges[adc])
-			    
-			    book.fill((scan_bin, charge),
-				      "Charge_phase_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
-				      (MAX_SETTINGS, 100), (-0.5, -0.5), (MAX_SETTINGS - 0.5, 20000),
-				      title="Charge Phase Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Phase scan index;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-			   
+                #				"""	
+                #				book.fill((ts, charge), "Charge_vs_TS_%s_phase_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, scan_bin, fedId, crate, slot, fib, fibCh),
+                #					  nTsMax, -0.5, nTsMax-0.5,
+                #					  title="Charge vs TS  Phase scan index %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (scan_bin, fedId, crate, slot, fib, fibCh, eq))
+                #
+                #				book.fill((ts, charge), "Charge_vs_TS_%s_phase_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, scan_bin, fedId, crate, slot, fib, fibCh),
+                #					  (nTsMax, 100), (-0.5, -0.5), (nTsMax-0.5, 20000),
+                #					  title="Charge vs TS  Phase scan index %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (scan_bin, fedId, crate, slot, fib, fibCh, eq))
+                #				"""
+                                
+                            if fewerHistos: continue
 
-			    book.fill((scan_bin, charge),
-				      "Charge_phase_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
-				      MAX_SETTINGS, -0.5, MAX_SETTINGS - 0.5,
-				      title="Charge Phase Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Phase scan index;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-			    
-			    tdc = channelData["TDC"][ts]
-			    if adc > ADC_THRESHOLD: 
-				book.fill((scan_bin, tdc),
-					  "TDC_phase_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
-					  (MAX_SETTINGS, TDC_MAX+1), (-0.5, -0.5), (MAX_SETTINGS - 0.5, TDC_MAX + 0.5),
-					  title="TDC Phase Scan  (event ADC > %d)  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Phase scan index;TDC;Counts / bin" % (ADC_THRESHOLD, fedId, crate, slot, fib, fibCh, eq))
-			       
-			    
-			    if (fib == 4 and fibCh == 4):
-				book.fill((ts, adc), "ADC_vs_TS_%s_phase_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, scan_bin, fedId, crate, slot, fib, fibCh),
-					  nTsMax, -0.5, nTsMax-0.5,
-					  title="ADC vs TS  Phase scan index %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;ADC;Counts / bin" % (scan_bin, fedId, crate, slot, fib, fibCh, eq))
+                            book.fill((scan_bin, adc),
+                                  "ADC_phase_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
+                                  MAX_SETTINGS, -0.5, MAX_SETTINGS - 0.5,
+                                  title="ADC Phase Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Phase scan index;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+                            
+                            
+                            charge = float(adcCharges[adc])
+                            
+                            book.fill((scan_bin, charge),
+                                  "Charge_phase_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
+                                  (MAX_SETTINGS, 100), (-0.5, -0.5), (MAX_SETTINGS - 0.5, 20000),
+                                  title="Charge Phase Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Phase scan index;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+                           
 
-				book.fill((ts, adc), "ADC_vs_TS_%s_phase_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, scan_bin, fedId, crate, slot, fib, fibCh),
-					  (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax-0.5, nAdcMax-0.5),
-					  title="ADC vs TS  Phase scan index %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;ADC;Counts / bin" % (scan_bin, fedId, crate, slot, fib, fibCh, eq))
-#				"""	
-#				book.fill((ts, charge), "Charge_vs_TS_%s_phase_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, scan_bin, fedId, crate, slot, fib, fibCh),
-#					  nTsMax, -0.5, nTsMax-0.5,
-#					  title="Charge vs TS  Phase scan index %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (scan_bin, fedId, crate, slot, fib, fibCh, eq))
-#
-#				book.fill((ts, charge), "Charge_vs_TS_%s_phase_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, scan_bin, fedId, crate, slot, fib, fibCh),
-#					  (nTsMax, 100), (-0.5, -0.5), (nTsMax-0.5, 20000),
-#					  title="Charge vs TS  Phase scan index %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (scan_bin, fedId, crate, slot, fib, fibCh, eq))
-#				"""
-				
-			    
-			    
-			    """ 
-			    if i > 0:
-				book.fill((i, adc), 
-                                      "NoTS0_ADC_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh), (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax - 0.5, nAdcMax - 0.5),
-                                      title="ADC vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+                            book.fill((scan_bin, charge),
+                                  "Charge_phase_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
+                                  MAX_SETTINGS, -0.5, MAX_SETTINGS - 0.5,
+                                  title="Charge Phase Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Phase scan index;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+                            
+                            tdc = channelData["TDC"][ts]
+                            if adc > ADC_THRESHOLD: 
+                                book.fill((scan_bin, tdc),
+                                  "TDC_phase_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
+                                  (MAX_SETTINGS, TDC_MAX+1), (-0.5, -0.5), (MAX_SETTINGS - 0.5, TDC_MAX + 0.5),
+                                  title="TDC Phase Scan  (event ADC > %d)  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Phase scan index;TDC;Counts / bin" % (ADC_THRESHOLD, fedId, crate, slot, fib, fibCh, eq))
+                               
+                            
+                            
+                            
+                            """ 
+                            if i > 0:
+                            book.fill((i, adc), 
+                                                  "NoTS0_ADC_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh), (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax - 0.5, nAdcMax - 0.5),
+                                                  title="ADC vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
 
-				book.fill((i, charge), "NoTS0_Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
-				      nTsMax, -0.5, nTsMax-0.5,
-				      title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+                            book.fill((i, charge), "NoTS0_Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
+                                  nTsMax, -0.5, nTsMax-0.5,
+                                  title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
 
-				book.fill((i, charge), "NoTS0_Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
-				      (nTsMax, 100), (-0.5, -0.5), (nTsMax-0.5, 20000),
-				      title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-			    """
+                            book.fill((i, charge), "NoTS0_Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
+                                  (nTsMax, 100), (-0.5, -0.5), (nTsMax-0.5, 20000),
+                                  title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+                            """
