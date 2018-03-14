@@ -27,128 +27,128 @@ def pedScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **
         if not raw:
             continue
 
-	nTsMax = raw[None]["firstNTs"]
-        #print "nTsMax = ", nTsMax
-	for fedId, dct in raw.items():
-	    if fedId is None:
-                continue
-            
-	    h = dct["header"]
-	    # Event number 
-	    evt = h["EvN"]
+        nTsMax = raw[None]["firstNTs"]
+            #print "nTsMax = ", nTsMax
+        for fedId, dct in raw.items():
+            if fedId is None:
+                    continue
+                
+            h = dct["header"]
+            # Event number 
+            evt = h["EvN"]
 
-        # get the important chunks of raw data
-        blocks = dct["htrBlocks"].values()
-        #pprint(blocks)
-        # sanity checks for chunks
-    
-        #for block in blocks:
-        for i, block in enumerate(blocks):
-            if type(block) is not dict:
-                printer.warning("FED %d block is not dict" % fedId)
-                continue
-            elif "channelData" not in block:
-                printer.warning("FED %d block has no channelData" % fedId)
-                continue
-	
-            crate = block["Crate"]
-            slot = block["Slot"]
+            # get the important chunks of raw data
+            blocks = dct["htrBlocks"].values()
+            #pprint(blocks)
+            # sanity checks for chunks
+        
+            #for block in blocks:
+            for i, block in enumerate(blocks):
+                if type(block) is not dict:
+                    printer.warning("FED %d block is not dict" % fedId)
+                    continue
+                elif "channelData" not in block:
+                    printer.warning("FED %d block has no channelData" % fedId)
+                    continue
+        
+                crate = block["Crate"]
+                slot = block["Slot"]
 
-            #with open("block%d.log"%i, "a+") as f:
-            #    pprint(block, stream=f)
+                #with open("block%d.log"%i, "a+") as f:
+                #    pprint(block, stream=f)
 
-            for channelData in block["channelData"].values():
-                #pprint(channelData)
-                #print "Fiber %d Ch %d  errf = %s"%(channelData["Fiber"], channelData["FibCh"], channelData["ErrF"])
-                if channelData["QIE"]:
-                # check error flags
-                errf = "ErrFNZ" if channelData["ErrF"] else "ErrF0"
-                # Clean or problematic error flag
-                eq = "!=" if channelData["ErrF"] else "=="
+                for channelData in block["channelData"].values():
+                    #pprint(channelData)
+                    #print "Fiber %d Ch %d  errf = %s"%(channelData["Fiber"], channelData["FibCh"], channelData["ErrF"])
+                    if channelData["QIE"]:
+                        # check error flags
+                        errf = "ErrFNZ" if channelData["ErrF"] else "ErrF0"
+                        # Clean or problematic error flag
+                        eq = "!=" if channelData["ErrF"] else "=="
 
-                nAdcMax = 256
-                        
-                # i: time slice
-                for (i, adc) in enumerate(channelData["QIE"]):
-                    if nTsMax <= i:
-                        break
-                    
-                    fib = channelData["Fiber"]
-                    fibCh = channelData["FibCh"]
+                        nAdcMax = 256
+                                
+                        # i: time slice
+                        for (i, adc) in enumerate(channelData["QIE"]):
+                            if nTsMax <= i:
+                                break
+                            
+                            fib = channelData["Fiber"]
+                            fibCh = channelData["FibCh"]
 
-                    # Determine the shunt setting by which bin the event falls into
-                    scan_bin = -1
-                    for b, lim in enumerate(ped_bins):
-                        if evt < lim:
-                            scan_bin = b - 1
-                            break
-     
+                            # Determine the shunt setting by which bin the event falls into
+                            scan_bin = -1
+                            for b, lim in enumerate(ped_bins):
+                                if evt < lim:
+                                    scan_bin = b - 1
+                                    break
+             
 
-                    book.fill((scan_bin, adc),
-                        "ADC_ped_scan_%s" % errf, (MAX_SETTINGS, nAdcMax), (-0.5, -0.5), (MAX_SETTINGS - 0.5, nAdcMax - 0.5),
-                        title="Pedestal Scan  ADC vs Evt Num (ErrF %s 0);Event number;ADC;Counts / bin" % eq)
-
-
-                    book.fill((scan_bin, adc),
-                        "ADC_ped_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
-                        (MAX_SETTINGS, nAdcMax), (-0.5, -0.5), (MAX_SETTINGS - 0.5, nAdcMax - 0.5),
-                        title="Pedestal Scan  Adc vs Evt Num  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);PedestalDAC setting;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+                            book.fill((scan_bin, adc),
+                                "ADC_ped_scan_%s" % errf, (MAX_SETTINGS, nAdcMax), (-0.5, -0.5), (MAX_SETTINGS - 0.5, nAdcMax - 0.5),
+                                title="Pedestal Scan  ADC vs Evt Num (ErrF %s 0);Event number;ADC;Counts / bin" % eq)
 
 
-                    charge = float(adcCharges[adc])
-                    book.fill((scan_bin, charge),
-                          "Charge_ped_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
-                          (MAX_SETTINGS, 100), (-0.5, -0.5), (MAX_SETTINGS - 0.5, 20000 - 0.5),
-                          title="Pedestal Scan  Charge vs Evt num  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);PedestalDAC setting;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+                            book.fill((scan_bin, adc),
+                                "ADC_ped_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
+                                (MAX_SETTINGS, nAdcMax), (-0.5, -0.5), (MAX_SETTINGS - 0.5, nAdcMax - 0.5),
+                                title="Pedestal Scan  Adc vs Evt Num  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);PedestalDAC setting;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
 
 
-                    if fewerHistos: continue
-                    if i > 0:
-                        book.fill((scan_bin, adc),
-                            "NoTS0_ADC_ped_scan_%s" % errf, (MAX_SETTINGS, nAdcMax), (-0.5, -0.5), (MAX_SETTINGS - 0.5, nAdcMax - 0.5),
-                            title="Pedestal Scan  ADC vs Evt Num (ErrF %s 0);Event number;ADC;Counts / bin" % eq)
+                            charge = float(adcCharges[adc])
+                            book.fill((scan_bin, charge),
+                                  "Charge_ped_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
+                                  (MAX_SETTINGS, 100), (-0.5, -0.5), (MAX_SETTINGS - 0.5, 20000 - 0.5),
+                                  title="Pedestal Scan  Charge vs Evt num  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);PedestalDAC setting;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
 
 
-                        book.fill((scan_bin, adc),
-                            "NoTS0_ADC_ped_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
-                            (MAX_SETTINGS, nAdcMax), (-0.5, -0.5), (MAX_SETTINGS - 0.5, nAdcMax - 0.5),
-                            title="Pedestal Scan  Adc vs Evt Num  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);PedestalDAC setting;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+                            if fewerHistos: continue
+                            if i > 0:
+                                book.fill((scan_bin, adc),
+                                    "NoTS0_ADC_ped_scan_%s" % errf, (MAX_SETTINGS, nAdcMax), (-0.5, -0.5), (MAX_SETTINGS - 0.5, nAdcMax - 0.5),
+                                    title="Pedestal Scan  ADC vs Evt Num (ErrF %s 0);Event number;ADC;Counts / bin" % eq)
 
 
-                        book.fill((scan_bin, charge),
-                             "NoTS0_Charge_ped_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
-                             (MAX_SETTINGS, 100), (-0.5, -0.5), (MAX_SETTINGS - 0.5, 20000 - 0.5),
-                             title="Pedestal Scan  Charge vs Evt num  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);PedestalDAC setting;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-
-                        
-
-                    """
-                    book.fill((scan_bin, adc),
-                          "ADC_ped_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
-                          MAX_SETTINGS, -0.5, MAX_SETTINGS - 0.5,
-                          title="ADC Pedestal Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);PedestalDAC setting;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq)) 
+                                book.fill((scan_bin, adc),
+                                    "NoTS0_ADC_ped_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
+                                    (MAX_SETTINGS, nAdcMax), (-0.5, -0.5), (MAX_SETTINGS - 0.5, nAdcMax - 0.5),
+                                    title="Pedestal Scan  Adc vs Evt Num  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);PedestalDAC setting;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
 
 
-                    charge = float(adcCharges[adc])
-                    # Linearized adc (charge vs TS)
-                    book.fill((i, charge), "Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
-                          nTsMax, -0.5, nTsMax-0.5,
-                          title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+                                book.fill((scan_bin, charge),
+                                     "NoTS0_Charge_ped_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
+                                     (MAX_SETTINGS, 100), (-0.5, -0.5), (MAX_SETTINGS - 0.5, 20000 - 0.5),
+                                     title="Pedestal Scan  Charge vs Evt num  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);PedestalDAC setting;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
 
-                    book.fill((i, charge), "Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
-                          (nTsMax, 100), (-0.5, -0.5), (nTsMax-0.5, 20000),
-                          title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-                   
-                    if i > 0:
-                    book.fill((i, adc), 
-                                          "NoTS0_ADC_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh), (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax - 0.5, nAdcMax - 0.5),
-                                          title="ADC vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+                                
 
-                    book.fill((i, charge), "NoTS0_Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
-                          nTsMax, -0.5, nTsMax-0.5,
-                          title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+                            """
+                            book.fill((scan_bin, adc),
+                                  "ADC_ped_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
+                                  MAX_SETTINGS, -0.5, MAX_SETTINGS - 0.5,
+                                  title="ADC Pedestal Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);PedestalDAC setting;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq)) 
 
-                    book.fill((i, charge), "NoTS0_Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
-                          (nTsMax, 100), (-0.5, -0.5), (nTsMax-0.5, 20000),
-                          title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-                    """
+
+                            charge = float(adcCharges[adc])
+                            # Linearized adc (charge vs TS)
+                            book.fill((i, charge), "Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
+                                  nTsMax, -0.5, nTsMax-0.5,
+                                  title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+
+                            book.fill((i, charge), "Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
+                                  (nTsMax, 100), (-0.5, -0.5), (nTsMax-0.5, 20000),
+                                  title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+                           
+                            if i > 0:
+                            book.fill((i, adc), 
+                                                  "NoTS0_ADC_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh), (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax - 0.5, nAdcMax - 0.5),
+                                                  title="ADC vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+
+                            book.fill((i, charge), "NoTS0_Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
+                                  nTsMax, -0.5, nTsMax-0.5,
+                                  title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+
+                            book.fill((i, charge), "NoTS0_Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
+                                  (nTsMax, 100), (-0.5, -0.5), (nTsMax-0.5, 20000),
+                                  title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+                            """
