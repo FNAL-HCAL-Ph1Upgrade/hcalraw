@@ -22,6 +22,9 @@ EVENTS_PER_SETTING = 100
 MAX_SETTINGS = 13
 setting_bins = [1 + n * EVENTS_PER_SETTING for n in range(MAX_SETTINGS + 1)]
 
+# Other slot 2 links will be ignored
+SLOT2_FIBERS = [0, 1, 2, 3, 4, 5, 7, 8]
+
 # Valid Gsel settings
 GSEL_CODES = [0b00000, 0b00001, 0b00010, 0b00100, 0b01000, 0b10000, 0b10010, \
               0b10100, 0b11000, 0b11010, 0b11100, 0b11110, 0b11111]
@@ -95,19 +98,27 @@ def iqi_gselScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fals
 
                             # Ignore events which fall outside the bin range
                             if scan_bin < 0: continue
-                            
+                            if slot == 2 and fib not in SLOT2_FIBERS: continue
+
                             charge = getADC_charge(GSEL_CODES[scan_bin], adc)
                             
 
                             # TS 2
                             if ts == 2:
+                                book.fill((evt, adc), "TS_2_ADC_vs_EvtNum", (1300, nAdcMax), (-0.5, -0.5), (1299.5, nAdcMax - 0.5), title="ADC vs Event Number  TS 2;Event number;ADC;Counts / bin")  	
+                                
                                 book.fill((evt, adc), "TS_2_ADC_vs_EvtNum_%s" % (errf), (1300, nAdcMax), (-0.5, -0.5), (1299.5, nAdcMax - 0.5), title="ADC vs Event Number  TS 2 (ErrF %s 0);Event number;ADC;Counts / bin" % (eq))  	
                                 #book.fill((evt, adc), "TS_2_ADC_vs_EvtNum_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_2D" % (errf, fedId, crate, slot, fib), (1300, nAdcMax), (-0.5, -0.5), (1299.5, nAdcMax - 0.5), title="ADC vs Event Number  TS 2 FED %d Crate %d Slot %d Fib %d (ErrF %s 0);Event number;ADC;Counts / bin" % (fedId, crate, slot, fib, eq))  
                                 book.fill((evt, adc), "TS_2_ADC_vs_EvtNum_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh), (1300, nAdcMax), (-0.5, -0.5), (1299.5, nAdcMax - 0.5), title="ADC vs Event Number  TS 2 FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Event number;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))  
                                 #book.fill(adc, "TS_2_ADC_vs_EvtNum_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh), nAdcMax, -0.5, nAdcMax - 0.5, title="ADC vs Event Number  TS 2 FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Event number;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq)) 
                             
+                                book.fill((evt, charge), "TS_2_Charge_vs_EvtNum", (1300, 100), (-0.5, -0.5), (1299.5, 14999.5), title="Charge vs Event Number  TS 2;Event number;Charge [fC];Counts / bin")  	
                             
-                                #book.fill((ts, charge), "Charge_vs_TS_%s_gsel_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, int(GSEL_CODES[scan_bin]), fedId, crate, slot, fib, fibCh),
+                                book.fill((evt, charge), "TS_2_Charge_vs_EvtNum_%s" % errf, (1300, 100), (-0.5, 299.5), (1299.5, 14999.5), title="Charge vs Event Number  TS 2 (ErrF %s 0);Event number;Charge [fC];Counts / bin" % eq)  	
+
+                                book.fill((evt, charge), "TS_2_Charge_vs_EvtNum_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (fedId, crate, slot, fib, fibCh), (1300, 100), (-0.5, 299.5), (1299.5, 14999.5), title="Charge vs Event Number  TS 2 FED %d Crate %d Slot %d Fib %d Ch %d;Event number;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh))  
+
+#book.fill((ts, charge), "Charge_vs_TS_%s_gsel_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, int(GSEL_CODES[scan_bin]), fedId, crate, slot, fib, fibCh),
                             #      nTsMax, -0.5, nTsMax-0.5,
                              #     title="Charge vs TS  Gsel %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (GSEL_CODES[scan_bin], fedId, crate, slot, fib, fibCh, eq))
 
