@@ -97,8 +97,8 @@ def iqi_gselScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fals
                                     break
 
                             # Ignore events which fall outside the bin range
-                            if scan_bin < 0: continue
-                            if slot == 2 and fib not in SLOT2_FIBERS: continue
+                            #if scan_bin < 0: continue
+                            #if slot == 2 and fib not in SLOT2_FIBERS: continue
 
                             charge = getADC_charge(GSEL_CODES[scan_bin], adc)
                             
