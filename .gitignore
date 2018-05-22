@@ -1,3 +1,6 @@
 *~
 *.pyc
 output
+*.root
+*.gif
+*.jpg

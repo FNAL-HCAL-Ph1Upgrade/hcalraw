@@ -96,14 +96,14 @@ def pulseRun(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
 			    
 			    charge = float(adcCharges[adc])
 			    # Linearized adc (charge vs TS)
-			    book.fill((i, charge), "Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
-				      nTsMax, -0.5, nTsMax-0.5,
-				      title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+	#		    book.fill((i, charge), "Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
+	#			      nTsMax, -0.5, nTsMax-0.5,
+	#			      title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
 
 			    book.fill((i, charge), "Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
 				      (nTsMax, 100), (-0.5, -0.5), (nTsMax-0.5, 20000),
 				      title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-			   
+			    """
 			    if i > 0:
 				book.fill((i, adc), 
                                       "NoTS0_ADC_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh), (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax - 0.5, nAdcMax - 0.5),
@@ -116,3 +116,5 @@ def pulseRun(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
 				book.fill((i, charge), "NoTS0_Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
 				      (nTsMax, 100), (-0.5, -0.5), (nTsMax-0.5, 20000),
 				      title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+
+			    """

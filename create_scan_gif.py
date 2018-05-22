@@ -27,8 +27,8 @@ SLOT = 1
 GSEL_CODES = [0b00000, 0b00001, 0b00010, 0b00100, 0b01000, 0b10000, 0b10010, \
               0b10100, 0b11000, 0b11010, 0b11100, 0b11110, 0b11111]
 
-FIBER = 21 
-FIBCH = 7
+FIBER = 4 
+FIBCH = 4 
 
 
 #############################################
@@ -73,15 +73,15 @@ c = TCanvas("c","c",1700,1200)
 
 try:
     if opt.scan == "gsel":
-	FRAMES = 13
+	    FRAMES = 13
     elif opt.scan == "phase":
-	FRAMES = 114
+	    FRAMES = 114
     else:
-	print "Unrecognized --scan option  (hint: gsel or phase)"
-	sys.exit()
+	    print "Unrecognized --scan option  (hint: gsel or phase)"
+	    sys.exit()
 
     if opt.frames > 0:
-	FRAMES = opt.frames
+        FRAMES = opt.frames
 except:
     sys.exit()
 
@@ -90,12 +90,17 @@ histos = []
 for i in range(FRAMES):
     htemp = None
     #htemp = f.Get("ADC_vs_TS_ErrF0_%s_%d_FED_1776_Crate_41_Slot_1_Fib_4_Ch_4_2D" % (opt.scan, i if opt.scan != "gsel" else GSEL_CODES[i]))
-    htemp = f.Get("ADC_vs_TS_ErrF0_%s_%d_FED_1776_Crate_41_Slot_1_Fib_%d_Ch_%d_2D" % (opt.scan, i if opt.scan != "gsel" else GSEL_CODES[i], FIBER, FIBCH))
+    hname = "ADC_vs_TS_ErrF0_%s_%d_FED_1776_Crate_41_Slot_1_Fib_%d_Ch_%d_2D" % (opt.scan, i if opt.scan != "gsel" else GSEL_CODES[i], FIBER, FIBCH)
+    htemp = f.Get(hname)
     try:
-	htemp.SetDirectory(0)
-	histos.append(htemp)
+        htemp.SetDirectory(0)
+        htemp.GetYaxis().SetTitleOffset(1.1)
+        htemp.GetZaxis().SetTitleOffset(1.0)
+        htemp.GetZaxis().SetRangeUser(0., 100.)
+        histos.append(htemp)
     except:
-	continue
+        print "Unable to find hist:", hname
+        continue
 if len(histos) == 0:
     print "Can't find %s scan data in %s" % (opt.scan, opt.inF)
     sys.exit()
@@ -106,7 +111,7 @@ if len(histos) == 0:
 print "done!"
 print "Drawing frames...",
 sys.stdout.flush()
-maxADC = 75 if opt.scan == "phase" else 150
+maxADC = 150
 #maxADC = 20000
 
 tempdir = "_tmpGif_" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
@@ -137,13 +142,13 @@ path,outf = os.path.split(opt.outF)
 if opt.outF != "" and (path == "" or os.path.exists(path)):
     name = os.path.abspath(path) + "/" + outf
     if os.path.splitext(outf)[1] != ".gif":
-	name += ".gif"
+	    name += ".gif"
 
 else:
     name = os.getcwd() + "/" + os.path.splitext(os.path.basename(opt.inF))[0] + "-%s_scan.gif" % opt.scan
     #name = os.path.splitext(os.path.abspath(os.path.split(opt.inF)[0]) + "/" + os.path.basename(opt.inF))[0] + "-%s_scan.gif" % opt.scan
 
-print "Creating gif %s ..." % name, 
+print "Creating gif %s..." % name, 
 sys.stdout.flush()
 
 if opt.scan == "phase":
