@@ -1,38 +1,73 @@
 #####################################################################
-#  iQiScan.py							    #
-#								    #		
-#  hcalraw plugin for analyzing iQi scan data			    #
-#								    #
-#  Usage:							    #
-#  Select with the --plugins option in oneRun.py or look.py	    #
-#								    #
+#  master.py                                                        #
+#								                                    #		
+#  hcalraw plugin for analyzing master QC scan data		            #
+#                                                                   #
+#  Usage:							                                #
+#  Select with the --plugins option in oneRun.py or look.py	        #
+#								                                    #
 #####################################################################
 
 import collections
 from configuration import hw, sw
 import printer
 from pprint import pprint
-from ADC_charge import getADC_charge
+#from ADC_charge import getADC_charge
+
+# Conversions from ADC to charge [fC] for unshunted case (Gsel = 0) 
+adcToCharge=[1.62, 4.86, 8.11, 11.35, 14.59, 17.84, 21.08, 24.32, 27.57, 30.81, 34.05, 37.30, 40.54, 43.78, 47.03, 50.27, 56.75, 63.24, 69.73, 76.21, 82.70, 89.19, 95.67, 102.2, 108.6, 115.1, 121.6, 128.1, 134.6, 141.1, 147.6, 154.0, 160.5, 167.0, 173.5, 180.0, 193.0, 205.9, 218.9, 231.9, 244.9, 257.8, 270.8, 283.8, 296.7, 309.7, 322.7, 335.7, 348.6, 361.6, 374.6, 387.6, 400.5, 413.5, 426.5, 439.4, 452.4, 478.4, 504.3, 530.3, 556.2, 582.1, 608.1, 634.0, 577.6, 603.0, 628.5, 654.0, 679.5, 705.0, 730.5, 756.0, 781.5, 806.9, 832.4, 857.9, 883.4, 908.9, 934.4, 959.9, 1010.9, 1061.8, 1112.8, 1163.8, 1214.8, 1265.7, 1316.7, 1367.7, 1418.7, 1469.6, 1520.6, 1571.6, 1622.6, 1673.5, 1724.5, 1775.5, 1826.5, 1877.5, 1928.4, 1979.4, 2081.4, 2183.3, 2285.3, 2387.2, 2489.2, 2591.1, 2693.1, 2795.0, 2897.0, 2998.9, 3100.9, 3202.8, 3304.8, 3406.8, 3508.7, 3610.7, 3712.6, 3814.6, 3916.5, 4018.5, 4120.4, 4324.3, 4528.2, 4732.1, 4936.1, 5140.0, 5343.9, 5547.8, 5331.9, 5542.5, 5753.1, 5963.7, 6174.3, 6384.9, 6595.5, 6806.1, 7016.7, 7227.3, 7437.9, 7648.4, 7859.0, 8069.6, 8280.2, 8490.8, 8912.0, 9333.2, 9754.3, 10175.5, 10596.7, 11017.9, 11439.1, 11860.3, 12281.4, 12702.6, 13123.8, 13545.0, 13966.2, 14387.3, 14808.5, 15229.7, 15650.9, 16072.1, 16493.2, 16914.4, 17756.8, 18599.1, 19441.5, 20283.9, 21126.2, 21968.6, 22811.0, 23653.3, 24495.7, 25338.0, 26180.4, 27022.8, 27865.1, 28707.5, 29549.9, 30392.2, 31234.6, 32076.9, 32919.3, 33761.7, 34604.0, 36288.8, 37973.5, 39658.2, 41342.9, 43027.6, 44712.4, 46397.1, 43321.6, 44990.1, 46658.6, 48327.1, 49995.7, 51664.2, 53332.7, 55001.2, 56669.7, 58338.2, 60006.7, 61675.2, 63343.7, 65012.3, 66680.8, 68349.3, 71686.3, 75023.3, 78360.3, 81697.4, 85034.4, 88371.4, 91708.4, 95045.4, 98382.5, 101719.5, 105056.5, 108393.5, 111730.6, 115067.6, 118404.6, 121741.6, 125078.6, 128415.7, 131752.7, 135089.7, 141763.8, 148437.8, 155111.8, 161785.9, 168459.9, 175134.0, 181808.0, 188482.1, 195156.1, 201830.1, 208504.2, 215178.2, 221852.3, 228526.3, 235200.4, 241874.4, 248548.4, 255222.5, 261896.5, 268570.6, 275244.6, 288592.7, 301940.8, 315288.9, 328637.0, 341985.1, 355333.1, 368681.2]
 
 pedestalRange =      range(1,      1001)
 capIDpedestalRange = range(1001,   2601)
 pedestalScanRange =  range(2601,   9001)
-iqiScanRange =       range(9001,   9801)
+iQiScanRange =       range(9001,   9801)
 gselScanRange =      range(9801,  11101)
 phaseScanRange =     range(11101, 21101)
 
-TDC_MAX = 3
-ADC_THRESHOLD = 20
+
+# Compute this stuff once
+pedestalRange_events = len(pedestalRange)
+capIDpedestalRange_events = len(capIDpedestalRange)
+pedestalScanRange_events = len(pedestalScanRange)
+iQiScanRange_events = len(iQiScanRange)
+gselScanRange_events = len(gselScanRange)
+phaseScanRange_events = len(phaseScanRange)
+
+pedestalRange_min = min(pedestalRange)
+pedestalRange_max = max(pedestalRange)
+capIDpedestalRange_min = min(capIDpedestalRange)
+capIDpedestalRange_max = max(capIDpedestalRange)
+pedestalScanRange_min = min(pedestalScanRange)
+pedestalScanRange_max = max(pedestalScanRange)
+iQiScanRange_min = min(iQiScanRange)
+iQiScanRange_max = max(iQiScanRange)
+gselScanRange_min = min(gselScanRange)
+gselScanRange_max = max(gselScanRange)
+phaseScanRange_min = min(phaseScanRange)
+phaseScanRange_max = max(phaseScanRange)
+
+pedestalRange_binMin = pedestalRange_min - 0.5
+pedestalRange_binMax = pedestalRange_max + 0.5
+capIDpedestalRange_binMin = capIDpedestalRange_min - 0.5
+capIDpedestalRange_binMax = capIDpedestalRange_max + 0.5
+pedestalScanRange_binMin = pedestalScanRange_min - 0.5
+pedestalScanRange_binMax = pedestalScanRange_max + 0.5
+iQiScanRange_binMin = iQiScanRange_min - 0.5
+iQiScanRange_binMax = iQiScanRange_max + 0.5
+gselScanRange_binMin = gselScanRange_min - 0.5
+gselScanRange_binMax = gselScanRange_max + 0.5
+phaseScanRange_binMin = phaseScanRange_min - 0.5
+phaseScanRange_binMax = phaseScanRange_max + 0.5
+
+
+#TDC_MAX = 3
+#ADC_THRESHOLD = 20
 SOI = 3	    # Sample (time slice) of interest
-EVENTS_PER_SETTING = 100
-MAX_SETTINGS = 31
-setting_bins = [1 + n * EVENTS_PER_SETTING for n in range(MAX_SETTINGS + 1)]
-SKIP_FIRST = 50
-#TOTAL_EVENTS = MAX_SETTINGS * EVENTS_PER_SETTING
-TOTAL_EVENTS = 21100 
+TOTAL_EVENTS = max(phaseScanRange)
+TOTAL_EVENTS_binMax = TOTAL_EVENTS + 0.5
 
 # Other slot 2 links will be ignored
-SLOT2_FIBERS = [0, 1, 2, 3, 4, 5, 6, 7]
+#SLOT2_FIBERS = [0, 1, 2, 3, 4, 5, 6, 7]
 
 # Valid Gsel settings
 GSEL_CODES = [0b00000, 0b00001, 0b00010, 0b00100, 0b01000, 0b10000, 0b10010, \
@@ -46,7 +81,6 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
             continue
 
         nTsMax = raw[None]["firstNTs"]
-        #print "nTsMax = ", nTsMax
         for fedId, dct in raw.items():
             if fedId is None:
                 continue
@@ -55,7 +89,6 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
             evt = h["EvN"]
             # get the important chunks of raw data
             blocks = dct["htrBlocks"].values()
-            #pprint(blocks)
             # sanity checks for chunks
            
             #for block in blocks:
@@ -67,104 +100,57 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
                     printer.warning("FED %d block has no channelData" % fedId)
                     continue
 
-            crate = block["Crate"]
-            slot = block["Slot"]
+                crate = block["Crate"]
+                slot = block["Slot"]
 
-            #with open("block%d.log"%i, "a+") as f:
-            #    pprint(block, stream=f)
-            for channelData in block["channelData"].values():
-                #pprint(channelData)
-                #print "Fiber %d Ch %d  errf = %s"%(channelData["Fiber"], channelData["FibCh"], channelData["ErrF"])
-                
-                if channelData["QIE"]:
-                    # check error flags
-                    errf = "ErrFNZ" if channelData["ErrF"] else "ErrF0"
-                    # Clean or problematic error flag
-                    eq = "!=" if channelData["ErrF"] else "=="
+                for channelData in block["channelData"].values():
+                    if channelData["QIE"]:
+                        # check error flags
+                        #errf = "ErrFNZ" if channelData["ErrF"] else "ErrF0"
+                        # Clean or problematic error flag
+                        #eq = "!=" if channelData["ErrF"] else "=="
 
-                    nAdcMax = 256
+                        #nAdcMax = 256
+                                
+                        fib = channelData["Fiber"]
+                        fibCh = channelData["FibCh"]
+
+
+                        #if slot != 2: continue
+                        #if slot == 2 and fib not in SLOT2_FIBERS: continue			
+                        if slot == 2 and fib > 7: continue 
+                        
+                        # ts: time slice
+                        for (ts, adc) in enumerate(channelData["QIE"]):
+                            if nTsMax <= ts:
+                                break
+
+                            charge = adcToCharge[adc] 
+                           
+                            if not fewerHistos:
+                                book.fill((evt, charge), "TS_%d_Charge_vs_EvtNum" % ts, TOTAL_EVENTS, 0.5, TOTAL_EVENTS_binMax, title="HB QC Scan  TS %d;Event number;Charge[fC]" % ts)  
+                                book.fill((evt, charge), "TS_%d_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts,slot,fib,fibCh), TOTAL_EVENTS, 0.5, TOTAL_EVENTS_binMax, title="HB QC Scan  Slot %d Fiber %d Ch %d  TS %d;Event number;Charge [fC]" % (slot, fib, fibCh, ts))  
                             
-                    fib = channelData["Fiber"]
-                    fibCh = channelData["FibCh"]
 
-                    #print "fib %d  fibCh %d" % (fib, fibCh) 
-                    #if not (fib == 1 and fibCh == 3 and slot == 1): 
-                    #    continue 
+                            if ts > 0 and evt <= pedestalRange_max and evt >= pedestalRange_min:
+                                book.fill((evt, charge), "pedestal_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (slot,fib,fibCh), pedestalRange_events, pedestalRange_binMin, pedestalRange_binMax, title="HB Pedestal Run  Slot %d Fiber %d Ch %d  TS 1-7;Event number;Charge [fC]" % (slot, fib, fibCh))  
 
-                    if slot != 2: continue
-                    if slot == 2 and fib not in SLOT2_FIBERS: continue			
-                    
-                    if fib != 6: continue                    
-                    #print "Event number:", evt
-                    # ts: time slice
-                    for (ts, adc) in enumerate(channelData["QIE"]):
-                        if nTsMax <= ts:
-                            break
+                            elif evt <= capIDpedestalRange_max and evt >= capIDpedestalRange_min and ts > 0 and ts < 5:       
+                                book.fill((evt, charge), "capID%dpedestal_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts%4, slot, fib, fibCh), capIDpedestalRange_events, capIDpedestalRange_binMin, capIDpedestalRange_binMax, title="HB CapID%dPedestal Scan  Slot %d Fiber %d Ch %d;Event number;Charge [fC]" % (ts%4, slot, fib, fibCh))  
 
-                        #if channelData.get("TDC"):
-                            #print "TS %d channelData['TDC'] = %s" % (i, channelData["TDC"])
+                            elif ts > 0 and evt <= pedestalScanRange_max and evt >= pedestalScanRange_min:
+                                book.fill((evt, charge), "pedestalScan_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (slot, fib, fibCh), pedestalScanRange_events, pedestalScanRange_binMin,  pedestalScanRange_binMax, title="HB Pedestal Scan  Slot %d Fiber %d Ch %d  TS 1-7;Event number;Charge [fC]" % (slot, fib, fibCh))  
+
+                            elif ts == SOI and evt <= iQiScanRange_max and evt >= iQiScanRange_min:
+                                book.fill((evt, charge), "iQiScan_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (slot, fib, fibCh), iQiScanRange_events, iQiScanRange_binMin, iQiScanRange_binMax, title="HB iQi Scan  Slot %d Fiber %d Ch %d  TS %d;Event number;Charge [fC]" % (slot, fib, fibCh, ts))  
+                            
+                            elif ts == SOI and evt <= gselScanRange_max and evt >= gselScanRange_min: 
+                                #gsel = (evt - min(gselScanRange))/100
+                                #charge = getADC_charge(GSEL_CODES[gsel], adc)
+                                book.fill((evt, charge), "gselScan_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (slot, fib, fibCh), gselScanRange_events, gselScanRange_binMin, gselScanRange_binMax, title="HB iQi Gsel Scan  Slot %d Fiber %d Ch %d  TS %d;Event number;Charge [fC]" % (slot, fib, fibCh, ts))  
+
+                            # Phase scan
+                            elif ts > 0 and ts < 4: 
+                                book.fill((evt, charge), "phaseScan_TS_%d_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts, slot, fib, fibCh), phaseScanRange_events, phaseScanRange_binMin, phaseScanRange_binMax, title="HB iQi Phase Scan  Slot %d Fiber %d Ch %d  TS %d;Event number;Charge [fC]" % (slot, fib, fibCh, ts))  
 
                         
-        #			    # Determine the setting by which bin the event falls into
-        #			    scan_bin = -1
-        #			    for b, lim in enumerate(setting_bins):
-        #				if evt < lim:
-        #				    scan_bin = b - 1
-        #				    break
-
-                        # Ignore events which fall outside the bin range
-        #			    if scan_bin < 0: continue
-                        
-                        #charge = getADC_charge(0, adc)
-                     
-                        #if ts == SOI:
-                        book.fill((evt, adc), "TS_%d_ADC_vs_EvtNum_2D" % ts, ( TOTAL_EVENTS, nAdcMax), (0.5, -0.5), (TOTAL_EVENTS + 0.5, nAdcMax - 0.5), title="HB QC Scan  TS %d;Event number;ADC" % ts)  
-
-                        book.fill((evt, adc), "TS_%d_ADC_vs_EvtNum_Fib_%d_2D" % (ts,fib), ( TOTAL_EVENTS, nAdcMax), (0.5, -0.5), (TOTAL_EVENTS + 0.5, nAdcMax - 0.5), title="HB QC Scan  Fiber %d  TS %d;Event number;ADC" % (fib, ts))  
-                        book.fill((evt, adc), "TS_%d_ADC_vs_EvtNum_Fib_%d_Ch_%d_2D" % (ts,fib,fibCh), ( TOTAL_EVENTS, nAdcMax), (0.5, -0.5), (TOTAL_EVENTS + 0.5, nAdcMax - 0.5), title="HB QC Scan  Fiber %d Ch %d  TS %d;Event number;ADC" % (fib, fibCh,ts))  
-                        
-                        if evt in pedestalRange:
-                            #if ts == SOI:
-                            #book.fill((evt, adc), "pedestal_TS_%d_ADC_vs_EvtNum_2D" % ts, ( len(pedestalRange), nAdcMax), (min(pedestalRange) - 0.5, -0.5), (max(pedestalRange) + 0.5, nAdcMax - 0.5), title="HB Pedestal Run  TS %d;Event number;ADC" % ts)  
-                            book.fill((evt, adc), "pedestal_TS_%d_ADC_vs_EvtNum_Fib_%d_2D" % (ts,fib), ( len(pedestalRange), nAdcMax), (min(pedestalRange) - 0.5, -0.5), (max(pedestalRange) + 0.5, nAdcMax - 0.5), title="HB Pedestal Run  Fiber %d  TS %d;Event number;ADC" % (fib,ts))  
-
-                        elif evt in capIDpedestalRange:        
-                            #book.fill((evt, adc), "CapIDpedestal_TS_%d_ADC_vs_EvtNum_2D" % ts, ( len(capIDpedestalRange), nAdcMax), (min(capIDpedestalRange) - 0.5, -0.5), (max(capIDpedestalRange) + 0.5, nAdcMax - 0.5), title="HB CapID%dPedestal Scan  TS %d;Event number;ADC" % (ts%4,ts))  
-                            book.fill((evt, adc), "capIDpedestal_TS_%d_ADC_vs_EvtNum_Fib_%d_Ch_%d_2D" % (ts,fib,fibCh), ( len(capIDpedestalRange), nAdcMax), (min(capIDpedestalRange) - 0.5, -0.5), (max(capIDpedestalRange) + 0.5, nAdcMax - 0.5), title="HB CapID%dPedestal Scan  Fiber %d Ch %d  TS %d;Event number;ADC" % (ts%4,fib,fibCh,ts))  
-
-                        elif evt in pedestalScanRange:
-                            #if ts == SOI:
-                            #book.fill((evt, adc), "pedestalScan_TS_%d_ADC_vs_EvtNum_2D" % ts, ( len(pedestalScanRange), nAdcMax), (min(pedestalScanRange) - 0.5, -0.5), (max(pedestalScanRange) + 0.5, nAdcMax - 0.5), title="HB Pedestal Scan  TS %d;Event number;ADC" % ts)  
-                            book.fill((evt, adc), "pedestalScan_TS_%d_ADC_vs_EvtNum_Fib_%d_Ch_%d_2D" % (ts,fib,fibCh), ( len(pedestalScanRange), nAdcMax), (min(pedestalScanRange) - 0.5, -0.5), (max(pedestalScanRange) + 0.5, nAdcMax - 0.5), title="HB Pedestal Scan  Fiber %d Ch %d  TS %d;Event number;ADC" % (fib,fibCh,ts))  
-
-                        elif evt in iqiScanRange: 
-                            #book.fill((evt, adc), "iqiScan_TS_%d_ADC_vs_EvtNum_2D" % ts, ( len(iqiScanRange), nAdcMax), (min(iqiScanRange) - 0.5, -0.5), (max(iqiScanRange) + 0.5, nAdcMax - 0.5), title="HB iQi Scan  TS %d;Event number;ADC" % ts)  
-                            book.fill((evt, adc), "iqiScan_TS_%d_ADC_vs_EvtNum_Fib_%d_Ch_%d_2D" % (ts,fib,fibCh), ( len(iqiScanRange), nAdcMax), (min(iqiScanRange) - 0.5, -0.5), (max(iqiScanRange) + 0.5, nAdcMax - 0.5), title="HB iQi Scan  Fiber %d Ch %d  TS %d;Event number;ADC" % (fib,fibCh,ts))  
-                        elif evt in gselScanRange:  
-                            #if ts == SOI:
-                            #book.fill((evt, adc), "gselScan_TS_%d_ADC_vs_EvtNum_2D" % ts, ( len(gselScanRange), nAdcMax), (min(gselScanRange) - 0.5, -0.5), (max(gselScanRange) + 0.5, nAdcMax - 0.5), title="HB iQi Gsel Scan  TS %d;Event number;ADC" % ts)  
-                            gsel = (evt - min(gselScanRange))/100
-                            charge = getADC_charge(GSEL_CODES[gsel], adc)
-                            book.fill((evt, adc), "gselScan_TS_%d_ADC_vs_EvtNum_Fib_%d_Ch_%d_2D" % (ts,fib,fibCh), ( len(gselScanRange), nAdcMax), (min(gselScanRange) - 0.5, -0.5), (max(gselScanRange) + 0.5, nAdcMax - 0.5), title="HB iQi Gsel Scan  Fiber %d Ch %d  TS %d;Event number;ADC" % (fib,fibCh,ts))  
-                            book.fill((evt, charge), "gselScan_TS_%d_Charge_vs_EvtNum_Fib_%d_Ch_%d_2D" % (ts,fib,fibCh), ( len(gselScanRange), 100), (min(gselScanRange) - 0.5, -0.5), (max(gselScanRange) + 0.5, 15000.0 - 0.5), title="HB iQi Gsel Scan  Fiber %d Ch %d  TS %d;Event number;Charge [fC]" % (fib,fibCh,ts))  
-
-                        elif evt in phaseScanRange:  
-                            #if ts == SOI:
-                            #book.fill((evt, adc), "phaseScan_TS_%d_ADC_vs_EvtNum_2D" % ts, ( len(phaseScanRange), nAdcMax), (min(phaseScanRange) - 0.5, -0.5), (max(gselScanRange) + 0.5, nAdcMax - 0.5), title="HB iQi Phase Scan  TS %d;Event number;ADC" % ts)  
-                            book.fill((evt, adc), "phaseScan_TS_%d_ADC_vs_EvtNum_Fib_%d_Ch_%d_2D" % (ts,fib,fibCh), ( len(phaseScanRange), nAdcMax), (min(phaseScanRange) - 0.5, -0.5), (max(gselScanRange) + 0.5, nAdcMax - 0.5), title="HB iQi Phase Scan  Fiber %d Ch %d  TS %d;Event number;ADC" % (fib,fibCh,ts))  
-                #if ts == SOI:
-                #book.fill((evt,charge), "TS_%d_Charge_vs_EvtNum_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (SOI, fedId, crate, slot, fib, fibCh), TOTAL_EVENTS, 0.5, TOTAL_EVENTS + 0.5, w=charge,title="Charge vs Event Number  TS %d FED %d Crate %d Slot %d Fib %d Ch %d;Event number;Charge [fC];Counts / bin" % (SOI, fedId, crate, slot, fib, fibCh))  
-
-                        continue
-                    
-                        book.fill((ts, adc), "ADC_vs_TS_gsel_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (int(GSEL_CODES[scan_bin]), fedId, crate, slot, fib, fibCh), (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax-0.5, nAdcMax-0.5), title="ADC vs TS  Gsel %d  FED %d Crate %d Slot %d Fib %d Ch %d;time slice;ADC;Counts / bin" % (GSEL_CODES[scan_bin], fedId, crate, slot, fib, fibCh))
-
-                        if ts == SOI: 
-                            book.fill((evt, adc), "TS_%d_ADC_vs_EvtNum_2D" % SOI, ( TOTAL_EVENTS, nAdcMax), (0.5, -0.5), (TOTAL_EVENTS + 0.5, nAdcMax - 0.5), title="iQi Gsel Scan  TS %d;Event number;ADC" % SOI)  
-                            book.fill((evt, adc), "TS_%d_ADC_vs_EvtNum_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (SOI, fedId, crate, slot, fib, fibCh), (TOTAL_EVENTS, nAdcMax), (0.5, -0.5), (TOTAL_EVENTS + 0.5, nAdcMax - 0.5), title="ADC vs Event Number  TS %d FED %d Crate %d Slot %d Fib %d Ch %d;Event number;ADC;Counts / bin" % (SOI, fedId, crate, slot, fib, fibCh))  
-                            book.fill(evt, "TS_%d_ADC_vs_EvtNum_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_1D" % (SOI, fedId, crate, slot, fib, fibCh), TOTAL_EVENTS, 0.5, TOTAL_EVENTS + 0.5, w=adc,title="ADC vs Event Number  TS %d FED %d Crate %d Slot %d Fib %d Ch %d;Event number;ADC;Counts / bin" % (SOI, fedId, crate, slot, fib, fibCh))  
-
-                        book.fill((evt, charge), "TS_%d_Charge_vs_EvtNum_2D" % SOI, ( TOTAL_EVENTS, nAdcMax), (0.5, -0.5), (TOTAL_EVENTS + 0.5, 15000 - 0.5), title="iQi Gsel Scan  TS %d;Event number;Charge [fC]" % SOI)  
-                        book.fill((evt, charge), "TS_%d_Charge_vs_EvtNum_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (SOI, fedId, crate, slot, fib, fibCh), (TOTAL_EVENTS, nAdcMax), (0.5, -0.5), (TOTAL_EVENTS + 0.5, 15000 - 0.5), title="Charge vs Event Number  TS %d FED %d Crate %d Slot %d Fib %d Ch %d;Event number;Charge [fC];Counts / bin" % (SOI, fedId, crate, slot, fib, fibCh))  
-                        book.fill(evt, "TS_%d_Charge_vs_EvtNum_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_1D" % (SOI, fedId, crate, slot, fib, fibCh), TOTAL_EVENTS, 0.5, TOTAL_EVENTS + 0.5, w=charge,title="Charge vs Event Number  TS %d FED %d Crate %d Slot %d Fib %d Ch %d;Event number;Charge [fC];Counts / bin" % (SOI, fedId, crate, slot, fib, fibCh))  
-
