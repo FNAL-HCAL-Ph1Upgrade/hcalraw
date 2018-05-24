@@ -85,7 +85,7 @@ def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
                             # If fiber and time slice not initialized, initialize them
                             if fib not in uniqueID[slot]:
                                 uniqueID[slot][fib] = {}
-                            if fibCh not in uniqueID[slot][fib]:
+                            if ts not in uniqueID[slot][fib]:
                                 uniqueID[slot][fib][ts] = "70"
 
                             # Check if this is the last loop for this time slice
@@ -100,5 +100,8 @@ def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
                             if (len(uniqueID[slot][fib][ts]) == 8) or (len(uniqueID[slot][fib][ts]) == 19):
                                 uniqueID[slot][fib][ts] = "".join((" 0x",uniqueID[slot][fib][ts]))
                             
+                for slot in uniqueID:
+                    for fib in uniqueID[slot]:
+                        for ts in uniqueID[slot][fib]:
                             book.fillGraph((0,0),"UniqueID_Crate_%d_Slot_%d_Fib_%d_TS_%d_%s" % (crate,slot,fib,ts,uniqueID[slot][fib][ts]),title="UniqueID Crate %d Slot %d Fib %d TS %d: %s" % (crate,slot,fib,ts,uniqueID[slot][fib][ts]))
                                 
