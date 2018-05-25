@@ -17,7 +17,7 @@ from pprint import pprint
 
 
 # Other slot 2 links will be ignored
-SLOT2_FIBERS = [0, 1, 2, 3, 4, 5, 7, 8]
+SLOT2_FIBERS = [0, 1, 2, 3, 4, 5, 6, 7]
 
 
 def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **other):
@@ -82,6 +82,18 @@ def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
                             fib = channelData["Fiber"]
                             fibCh = channelData["FibCh"]
 
+                            if slot == 1: continue
+
+                            if slot == 2 and fib not in SLOT2_FIBERS: continue
+
+                            # Ignore TS 0
+                            if ts == 0:
+                                continue
+                                                       
+                            # Only test at time slice 2
+                            #if ts != 2:
+                            #    continue
+                            
                             # If fiber and time slice not initialized, initialize them
                             if fib not in uniqueID[slot]:
                                 uniqueID[slot][fib] = {}
@@ -89,19 +101,27 @@ def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
                                 uniqueID[slot][fib][ts] = "70"
 
                             # Check if this is the last loop for this time slice
-                            if len(uniqueID[slot][fib][ts]) == 22:
-                                hexD = "%0.1X" % adc
+                            if len(uniqueID[slot][fib][ts]) == 21:
+                                if 1 == adc:
+                                    uniqueID[slot][fib][ts] = "".join((uniqueID[slot][fib][ts]," Top"))
+                                else:
+                                    uniqueID[slot][fib][ts] = "".join((uniqueID[slot][fib][ts]," Bot"))
                             else:
-                                hexD = "%0.2X" % adc
-
-                            uniqueID[slot][fib][ts] = "".join((hexD,uniqueID[slot][fib][ts]))
+                                #hexD = "%0.2X" % adc
+                                uniqueID[slot][fib][ts] = "".join(("%0.2X" % adc,uniqueID[slot][fib][ts]))
 
                             # Format hex codes with 0x
-                            if (len(uniqueID[slot][fib][ts]) == 8) or (len(uniqueID[slot][fib][ts]) == 19):
+                            if (len(uniqueID[slot][fib][ts]) == 8):
                                 uniqueID[slot][fib][ts] = "".join((" 0x",uniqueID[slot][fib][ts]))
-                            
-                for slot in uniqueID:
+                            if (len(uniqueID[slot][fib][ts]) == 19):
+                                uniqueID[slot][fib][ts] = "".join(("0x",uniqueID[slot][fib][ts]))
+                           
+                            #book.fill((adc),"ADC_vs_FibCh_Slot_%d_fib_%d_ts_%d" % (slot,fib,ts),(nAdcMax),(-0.5),(nAdcMax-0.5),title="ADC vs Fiber Channel Slot %d Fiber %d TS %d;ADC;N_{e}" % (slot,fib,ts))
+
+                            book.fill((fibCh,adc),"ADC_vs_FibCh_Slot_%d_fib_%d_ts_%d" % (slot,fib,ts),(16,nAdcMax),(0,-0.5),(16,nAdcMax-0.5),title="ADC vs Fiber Channel Slot %d Fiber %d TS %d;ADC;N_{e}" % (slot,fib,ts))
+
+                for slot in uniqueID: 
                     for fib in uniqueID[slot]:
                         for ts in uniqueID[slot][fib]:
-                            book.fillGraph((0,0),"UniqueID_Crate_%d_Slot_%d_Fib_%d_TS_%d_%s" % (crate,slot,fib,ts,uniqueID[slot][fib][ts]),title="UniqueID Crate %d Slot %d Fib %d TS %d: %s" % (crate,slot,fib,ts,uniqueID[slot][fib][ts]))
+                            book.fillGraph((0,0),"UniqueID_Slot_%d_Fib_%d_TS_%d_%s" % (slot,fib,ts,uniqueID[slot][fib][ts]),title="%s" % (uniqueID[slot][fib][ts]))
                                 
