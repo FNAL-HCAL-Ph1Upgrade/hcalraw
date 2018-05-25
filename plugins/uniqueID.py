@@ -43,7 +43,7 @@ def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
         
             # Initialize uniqueID dictionary
             uniqueID = {}
-		
+            minor = {}
             #for block in blocks:
             for i, block in enumerate(blocks):
                 if type(block) is not dict:
@@ -60,9 +60,11 @@ def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
                 if slot not in uniqueID:
                     uniqueID[slot] = {}
 
+                # initialize minor firmware version byte dictionary
+                if slot not in minor:
+                    minor[slot] = {}
                 #with open("block%d.log"%i, "a+") as f:
                 #    pprint(block, stream=f)
-
                 for channelData in block["channelData"].values():
                     #pprint(channelData)
                     #print "Fiber %d Ch %d  errf = %s"%(channelData["Fiber"], channelData["FibCh"], channelData["ErrF"])
@@ -73,26 +75,24 @@ def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
                         eq = "!=" if channelData["ErrF"] else "=="
 
                         nAdcMax = 256
-                                
+                        #pprint(channelData["TDC"])
+
                         # ts: time slice
                         for (ts, adc) in enumerate(channelData["QIE"]):
                             if nTsMax <= ts:
                                 break
-                            
+                            tdc = channelData["TDC"][ts]
                             fib = channelData["Fiber"]
                             fibCh = channelData["FibCh"]
 
-                            if slot == 1: continue
+                            #if slot == 1: continue
 
-                            if slot == 2 and fib not in SLOT2_FIBERS: continue
+                            #if slot == 2 and fib not in SLOT2_FIBERS: continue
 
                             # Ignore TS 0
                             if ts == 0:
                                 continue
                                                        
-                            # Only test at time slice 2
-                            #if ts != 2:
-                            #    continue
                             
                             # If fiber and time slice not initialized, initialize them
                             if fib not in uniqueID[slot]:
@@ -100,28 +100,43 @@ def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
                             if ts not in uniqueID[slot][fib]:
                                 uniqueID[slot][fib][ts] = "70"
 
+                            # initiialize minor firmware version byte
+                            if fib not in minor[slot]:
+                                minor[slot][fib] = {}
+                            if ts not in minor[slot][fib]:
+                                minor[slot][fib][ts] = 0
+
+                            
+                            # Compile Byte10 from TDC
+                            if fibCh in range(4):
+                                minorTS = int("%X" % tdc)
+                                minor[slot][fib][ts] = (minor[slot][fib][ts]*(10**(len(str(minor[slot][fib][ts])) - 1))) + minorTS
+
                             # Check if this is the last loop for this time slice
-                            if len(uniqueID[slot][fib][ts]) == 21:
-                                if 1 == adc:
-                                    uniqueID[slot][fib][ts] = "".join((uniqueID[slot][fib][ts]," Top"))
-                                else:
-                                    uniqueID[slot][fib][ts] = "".join((uniqueID[slot][fib][ts]," Bot"))
+                            #if len(uniqueID[slot][fib][ts]) == 21:
+                            if fibCh == 7:
+                                uniqueID[slot][fib][ts] = "".join((uniqueID[slot][fib][ts]," FW:%X.%02d"%(adc,minor[slot][fib][ts])))
                             else:
                                 #hexD = "%0.2X" % adc
                                 uniqueID[slot][fib][ts] = "".join(("%0.2X" % adc,uniqueID[slot][fib][ts]))
 
                             # Format hex codes with 0x
-                            if (len(uniqueID[slot][fib][ts]) == 8):
+                            #if (len(uniqueID[slot][fib][ts]) == 8):
+                            if fibCh == 2:
                                 uniqueID[slot][fib][ts] = "".join((" 0x",uniqueID[slot][fib][ts]))
-                            if (len(uniqueID[slot][fib][ts]) == 19):
+                            #if (len(uniqueID[slot][fib][ts]) == 19):
+                            if fibCh == 6:
                                 uniqueID[slot][fib][ts] = "".join(("0x",uniqueID[slot][fib][ts]))
-                           
+                            
+
+
                             #book.fill((adc),"ADC_vs_FibCh_Slot_%d_fib_%d_ts_%d" % (slot,fib,ts),(nAdcMax),(-0.5),(nAdcMax-0.5),title="ADC vs Fiber Channel Slot %d Fiber %d TS %d;ADC;N_{e}" % (slot,fib,ts))
 
                             book.fill((fibCh,adc),"ADC_vs_FibCh_Slot_%d_fib_%d_ts_%d" % (slot,fib,ts),(16,nAdcMax),(0,-0.5),(16,nAdcMax-0.5),title="ADC vs Fiber Channel Slot %d Fiber %d TS %d;ADC;N_{e}" % (slot,fib,ts))
+
+#                            pprint(minor[slot][fib])                
 
                 for slot in uniqueID: 
                     for fib in uniqueID[slot]:
                         for ts in uniqueID[slot][fib]:
                             book.fillGraph((0,0),"UniqueID_Slot_%d_Fib_%d_TS_%d_%s" % (slot,fib,ts,uniqueID[slot][fib][ts]),title="%s" % (uniqueID[slot][fib][ts]))
-                                
