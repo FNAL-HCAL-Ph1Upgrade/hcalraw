@@ -126,7 +126,6 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
                                 break
 
                             charge = adcToCharge[adc] 
-                           
                             if not fewerHistos:
                                 book.fill((evt, charge), "TS_%d_Charge_vs_EvtNum" % ts, TOTAL_EVENTS, 0.5, TOTAL_EVENTS_binMax, title="HB QC Scan  TS %d;Event number;Charge[fC]" % ts)  
                                 book.fill((evt, charge), "TS_%d_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts,slot,fib,fibCh), TOTAL_EVENTS, 0.5, TOTAL_EVENTS_binMax, title="HB QC Scan  Slot %d Fiber %d Ch %d  TS %d;Event number;Charge [fC]" % (slot, fib, fibCh, ts))  
@@ -152,5 +151,7 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
                             # Phase scan
                             elif ts > 0 and ts < 4: 
                                 book.fill((evt, charge), "phaseScan_TS_%d_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts, slot, fib, fibCh), phaseScanRange_events, phaseScanRange_binMin, phaseScanRange_binMax, title="HB iQi Phase Scan  Slot %d Fiber %d Ch %d  TS %d;Event number;Charge [fC]" % (slot, fib, fibCh, ts))  
+                                tdc = channelData["TDC"][ts]                           
+                                book.fill((evt, tdc), "phaseScan_TS_%d_TDC_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts, slot, fib, fibCh), phaseScanRange_events, phaseScanRange_binMin, phaseScanRange_binMax, title="HB iQi Phase Scan TDC  Slot %d Fiber %d Ch %d  TS %d;Event number;TDC" % (slot, fib, fibCh, ts))  
 
                         

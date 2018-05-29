@@ -44,6 +44,19 @@ def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
             # Initialize uniqueID dictionary
             uniqueID = {}
             minor = {}
+            
+            if evt == 5:
+                x = book.Get("ADC_vs_FibCh_Slot_2_fib_2_ts_4")
+                print("Event 5\tADC_vs_FibCh_Slot_2_fib_2_ts_4")
+                print("Title: ", x.GetTitle())
+                print("Bin contents:")
+                for b in range(x.GetNbinsX()):
+                    print("%f +- %f" % (x.GetBinContent(b), x.GetBinError(b)))
+                x.SetTitle("Foo some bars")
+            if evt == 6:
+                x = book.Get("ADC_vs_FibCh_Slot_2_fib_2_ts_4")
+                print("New title: ", x.GetTitle())
+
             #for block in blocks:
             for i, block in enumerate(blocks):
                 if type(block) is not dict:
@@ -85,9 +98,8 @@ def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
                             fib = channelData["Fiber"]
                             fibCh = channelData["FibCh"]
 
-                            #if slot == 1: continue
-
-                            #if slot == 2 and fib not in SLOT2_FIBERS: continue
+                            if slot == 1: continue
+                            if slot == 2 and fib not in SLOT2_FIBERS: continue
 
                             # Ignore TS 0
                             if ts == 0:
@@ -132,10 +144,11 @@ def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
 
                             #book.fill((adc),"ADC_vs_FibCh_Slot_%d_fib_%d_ts_%d" % (slot,fib,ts),(nAdcMax),(-0.5),(nAdcMax-0.5),title="ADC vs Fiber Channel Slot %d Fiber %d TS %d;ADC;N_{e}" % (slot,fib,ts))
 
-                            book.fill((fibCh,adc),"ADC_vs_FibCh_Slot_%d_fib_%d_ts_%d" % (slot,fib,ts),(16,nAdcMax),(0,-0.5),(16,nAdcMax-0.5),title="ADC vs Fiber Channel Slot %d Fiber %d TS %d;ADC;N_{e}" % (slot,fib,ts))
+                            book.fill((fibCh,adc),"ADC_vs_FibCh_Slot_%d_fib_%d_ts_%d" % (slot,fib,ts),16, 0.5, 16.5, title="")
 
 #                            pprint(minor[slot][fib])                
 
+                
                 for slot in uniqueID: 
                     for fib in uniqueID[slot]:
                         for ts in uniqueID[slot][fib]:
