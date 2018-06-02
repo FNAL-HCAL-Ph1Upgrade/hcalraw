@@ -23,6 +23,9 @@ class autoBook(dict):
     def fillGraph(self, x, name, title=""):
         self.fill(x, name, None, None, None, title=title)
 
+    def Get(self, name):
+        if name in self:
+            return self[name]
 
     def __book(self, is_tgraph, x, name, N, low, up, title, xAxisLabels, yAxisLabels):
         self.__directory.cd()
