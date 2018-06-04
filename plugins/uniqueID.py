@@ -22,12 +22,16 @@ SLOT2_FIBERS = [0, 1, 2, 3, 4, 5, 6, 7]
 
 def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **other):
     # sanity check
+
+    # Initialize a dictionary for storing location of a card if an error occurs
+    errorLoc = {}
+
     for r, raw in enumerate([raw1, raw2]):
         if not raw:
             continue
 
         nTsMax = raw[None]["firstNTs"]
-            #print "nTsMax = ", nTsMax
+
         for fedId, dct in raw.items():
             if fedId is None:
                     continue
@@ -38,13 +42,10 @@ def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
 
             # get the important chunks of raw data
             blocks = dct["htrBlocks"].values()
-            #pprint(blocks)
-            # sanity checks for chunks
         
-            # Initialize uniqueID dictionary
-            uniqueID = {}
-            minor = {}
-            #for block in blocks:
+
+
+            
             for i, block in enumerate(blocks):
                 if type(block) is not dict:
                     printer.warning("FED %d block is not dict" % fedId)
@@ -56,18 +57,10 @@ def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
                 crate = block["Crate"]
                 slot = block["Slot"]
 
-                # If slot not in uniqueID, initialize them
-                if slot not in uniqueID:
-                    uniqueID[slot] = {}
+                
 
-                # initialize minor firmware version byte dictionary
-                if slot not in minor:
-                    minor[slot] = {}
-                #with open("block%d.log"%i, "a+") as f:
-                #    pprint(block, stream=f)
+
                 for channelData in block["channelData"].values():
-                    #pprint(channelData)
-                    #print "Fiber %d Ch %d  errf = %s"%(channelData["Fiber"], channelData["FibCh"], channelData["ErrF"])
                     if channelData["QIE"]:
                         # check error flags
                         errf = "ErrFNZ" if channelData["ErrF"] else "ErrF0"
@@ -76,67 +69,84 @@ def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
 
                         nAdcMax = 256
                         #pprint(channelData["TDC"])
+                        
+                        
+                        fib = channelData["Fiber"]
+                        fibCh = channelData["FibCh"]
+                        
+
+                        # Only check in slots known to have a card installed
+                        if slot == 1: continue
+                        if slot == 2 and fib not in SLOT2_FIBERS: continue
 
                         # ts: time slice
                         for (ts, adc) in enumerate(channelData["QIE"]):
                             if nTsMax <= ts:
                                 break
                             tdc = channelData["TDC"][ts]
-                            fib = channelData["Fiber"]
-                            fibCh = channelData["FibCh"]
 
-                            #if slot == 1: continue
-
-                            #if slot == 2 and fib not in SLOT2_FIBERS: continue
 
                             # Ignore TS 0
                             if ts == 0:
                                 continue
-                                                       
                             
-                            # If fiber and time slice not initialized, initialize them
-                            if fib not in uniqueID[slot]:
-                                uniqueID[slot][fib] = {}
-                            if ts not in uniqueID[slot][fib]:
-                                uniqueID[slot][fib][ts] = "70"
+                            # Fill TProfile with ADC and TDC information, with ADC in bins 0-7 and TDC in bins 8-16
+                            book.fill((fibCh,adc),"UniqueID_Slot_%d_Fib_%d" % (slot,fib),16, 0.5, 16.5, title="")
+                            book.fill((fibCh+8,tdc),"UniqueID_Slot_%d_Fib_%d" % (slot,fib),16, 0.5, 16.5, title="")
+                        
+                        ## Construct and set unique ID
+                        ## Prints a warning if any bin's rms != 0
 
-                            # initiialize minor firmware version byte
-                            if fib not in minor[slot]:
-                                minor[slot][fib] = {}
-                            if ts not in minor[slot][fib]:
-                                minor[slot][fib][ts] = 0
 
-                            
-                            # Compile Byte10 from TDC
-                            if fibCh in range(4):
-                                minorTS = int("%X" % tdc)
-                                minor[slot][fib][ts] = (minor[slot][fib][ts]*(10**(len(str(minor[slot][fib][ts])) - 1))) + minorTS
+                        # Get histogram
+                        hist = book.Get("UniqueID_Slot_%d_Fib_%d" % (slot,fib))
 
-                            # Check if this is the last loop for this time slice
-                            #if len(uniqueID[slot][fib][ts]) == 21:
-                            if fibCh == 7:
-                                uniqueID[slot][fib][ts] = "".join((uniqueID[slot][fib][ts]," FW:%X.%02d"%(adc,minor[slot][fib][ts])))
+                        # inittialize uniqueID string
+                        uniqueID = ""
+                        
+                        # Create a list of bin values
+                        binValues = []
+                                        
+                        # If an error has occurred on current slot and fiber, do not check for error again
+                        if slot in errorLoc:
+                            if errorLoc[slot] == fib:
+                                continue
+
+
+                        # Check if rms of all bins = 0, if not, print warning and stop checking that link
+                        # If rms = 0, put bin value into a list
+                        for b in range(hist.GetNbinsX()):
+                            if(hist.GetBinError(b) != 0):
+                                printer.warning("Slot %d Fiber %d linkTestMode RMS Error" % (slot,fib))
+                                errorLoc[slot] = fib
+                                break
                             else:
-                                #hexD = "%0.2X" % adc
-                                uniqueID[slot][fib][ts] = "".join(("%0.2X" % adc,uniqueID[slot][fib][ts]))
+                                binValues.append(int(hist.GetBinContent(b)))
 
-                            # Format hex codes with 0x
-                            #if (len(uniqueID[slot][fib][ts]) == 8):
-                            if fibCh == 2:
-                                uniqueID[slot][fib][ts] = "".join((" 0x",uniqueID[slot][fib][ts]))
-                            #if (len(uniqueID[slot][fib][ts]) == 19):
-                            if fibCh == 6:
-                                uniqueID[slot][fib][ts] = "".join(("0x",uniqueID[slot][fib][ts]))
-                            
+                        
+
+                        # If list of bin values is not full (due to an error), go to next link
+                        if(len(binValues)<16):
+                            continue
+                        minor = 0
+
+                        # Compile Byte 10 from TDC into minor firmware version
+                        for tdc in binValues[8:12]:
+                            minorDigit = int("%X" % tdc)
+                            minor = (minor*(10**(len(str(minor)) - 1))) + minorDigit
+                        
+                        # Check if first bit TDC 5 is 1
+                        if((binValues[13] == 2) or (binValues[13] == 3)):
+                            topBot = "Top "
+                        else:
+                            topBot = "Bot "
+                         
+                      
+                        # Compile uniqueID string
+                        uniqueID = "".join(["0x",str("%0.2X"%binValues[6]),str("%0.2X"%binValues[5]),str("%0.2X"%binValues[4]),str("%0.2X"%binValues[3]),"_0x",str("%0.2X"%binValues[2]),str("%0.2X"%binValues[1]),str("%0.2X"%binValues[0]),"70 ",topBot,str("%X"%binValues[7]),"_",str("%02d"%minor)])
+                        
+
+                        # Set uniqueID as title of TProfile
+                        hist.SetTitle(uniqueID)
 
 
-                            #book.fill((adc),"ADC_vs_FibCh_Slot_%d_fib_%d_ts_%d" % (slot,fib,ts),(nAdcMax),(-0.5),(nAdcMax-0.5),title="ADC vs Fiber Channel Slot %d Fiber %d TS %d;ADC;N_{e}" % (slot,fib,ts))
-
-                            book.fill((fibCh,adc),"ADC_vs_FibCh_Slot_%d_fib_%d_ts_%d" % (slot,fib,ts),(16,nAdcMax),(0,-0.5),(16,nAdcMax-0.5),title="ADC vs Fiber Channel Slot %d Fiber %d TS %d;ADC;N_{e}" % (slot,fib,ts))
-
-#                            pprint(minor[slot][fib])                
-
-                for slot in uniqueID: 
-                    for fib in uniqueID[slot]:
-                        for ts in uniqueID[slot][fib]:
-                            book.fillGraph((0,0),"UniqueID_Slot_%d_Fib_%d_TS_%d_%s" % (slot,fib,ts,uniqueID[slot][fib][ts]),title="%s" % (uniqueID[slot][fib][ts]))
