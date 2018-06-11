@@ -171,16 +171,21 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
                                 hist = book.Get("UniqueID_Slot_%d_Fib_%d" % (slot,fib))
                                 uniqueID = ""
                                 binValues = []
+                                isError = False
                                 for b in range(hist.GetNbinsX()):
-                                    if(hist.GetBinError(b) != 0):
+                                    if (hist.GetBinError(b) != 0) and not isError:
                                         printer.warning("Slot %d Fiber %d linkTestMode RMS Error" % (slot,fib))
-                                        break
-                                    else:
-                                        binValues.append(int(hist.GetBinContent(b)))
-                                if(len(binValues) < 16):
-                                    continue
+                                        #break
+                                        isError = True
+                                    binValues.append(int(hist.GetBinContent(b)))
+
+                               # if(len(binValues) < 16):
+                               #     continue
 
                                 minor = 0
+
+                                #if all(adc == 255 for adc in binValues[0:8]) and len(binValues) == 16:
+                                #    printer.warning("Slot %d Fiber %d Bad Link" % (slot,fib))
 
                                 # Compile Byte 10 from TDC into minor firmware version
                                 for tdc in binValues[8:12]:
@@ -193,8 +198,14 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
                                 else:
                                     topBot = "Bot "
 
+                                # Determine uniqueID pass/fail
+                                if isError:
+                                    passFail = "FAIL "
+                                else:
+                                    passFail = "PASS "
+
                                 # Compile uniqueID string
-                                uniqueID = "".join(["0x",str("%0.2X"%binValues[6]),str("%0.2X"%binValues[5]),str("%0.2X"%binValues[4]),str("%0.2X"%binValues[3]),"_0x",str("%0.2X"%binValues[2]),str("%0.2X"%binValues[1]),str("%0.2X"%binValues[0]),"70 ",topBot,str("%X"%binValues[7]),"_",str("%01d"%minor)])
+                                uniqueID = "".join([passFail,"0x",str("%0.2X"%binValues[6]),str("%0.2X"%binValues[5]),str("%0.2X"%binValues[4]),str("%0.2X"%binValues[3]),"_0x",str("%0.2X"%binValues[2]),str("%0.2X"%binValues[1]),str("%0.2X"%binValues[0]),"70 ",topBot,str("%X"%binValues[7]),"_",str("%01d"%minor)])
 
                                 # Set uniqueID as title of TProfile
                                 hist.SetTitle(uniqueID)
