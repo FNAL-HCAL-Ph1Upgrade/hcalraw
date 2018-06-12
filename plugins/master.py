@@ -181,6 +181,12 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
 
                                 minor = 0
 
+                                # Check for bad link
+                                if len(set(binValues[0:8])) == 1 and binValues[0] == 255:
+                                    printer.warning("Slot %d Fiber %d linkTestMode Bad Link Error" % (slot,fib))
+                                    isError = True
+
+
                                 # Compile Byte 10 from TDC into minor firmware version
                                 for tdc in binValues[8:12]:
                                     minorDigit = int("%X" % tdc)
