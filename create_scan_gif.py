@@ -52,11 +52,11 @@ usage = 'usage: %prog [options]'
 parser = optparse.OptionParser(usage)
 parser.add_option('-i', '--inF', dest='inF', help='input file', default=None, type='string')
 parser.add_option('-o', '--outF', dest='outF', help='output file name', default="", type='string')
-parser.add_option('-s', '--scan', dest='scan', help='scan type (gsel or phase)', default="", type='string')
-parser.add_option('-f', '--frames', dest='frames', help='frames to use', default=0, type='int')
-parser.add_option('-e', '--fedId', dest='fedId', help='fed Id', default=1776, type='int')
+parser.add_option('--scan', dest='scan', help='scan type (gsel or phase)', default="phase", type='string')
+parser.add_option('-s', '--slot', dest='slot', type = 'int', help = "slot number")
+parser.add_option('-f', '--fiber', dest='fiber', type = 'int', help = "fiber number")
+parser.add_option('-c', '--channel', dest='fibch', type = 'int', help = "fiber channel")
 parser.add_option('-w', '--warn', dest='warn', help='warn on errors (0 or 1)', default=0, type='int')
-parser.add_option('-m', '--fiberMask', dest='fiberMask', help='fiber to inspect', default=-1, type='int')
 (opt,args) = parser.parse_args()
 
 f = TFile.Open(opt.inF, 'r')
@@ -71,32 +71,33 @@ gROOT.SetBatch(True)  # True: Don't display canvas
 c = TCanvas("c","c",1700,1200)
 
 
+
 try:
     if opt.scan == "gsel":
 	    FRAMES = 13
     elif opt.scan == "phase":
-	    FRAMES = 114
+	    FRAMES = 100
+        #FRAMES = range(50) + range(64, 114) 
     else:
 	    print "Unrecognized --scan option  (hint: gsel or phase)"
 	    sys.exit()
 
-    if opt.frames > 0:
-        FRAMES = opt.frames
 except:
     sys.exit()
 
 print "Loading histograms from file %s.." % opt.inF,
 histos = []
-for i in range(FRAMES):
+for i in xrange(FRAMES):
     htemp = None
     #htemp = f.Get("ADC_vs_TS_ErrF0_%s_%d_FED_1776_Crate_41_Slot_1_Fib_4_Ch_4_2D" % (opt.scan, i if opt.scan != "gsel" else GSEL_CODES[i]))
-    hname = "ADC_vs_TS_ErrF0_%s_%d_FED_1776_Crate_41_Slot_1_Fib_%d_Ch_%d_2D" % (opt.scan, i if opt.scan != "gsel" else GSEL_CODES[i], FIBER, FIBCH)
+    hname = "ADC_vs_TS_%s_%d_Slot_%d_Fib_%d_Ch_%d" % (opt.scan, i if opt.scan == "phase" else GSEL_CODES[i], opt.slot, opt.fiber, opt.fibch)
     htemp = f.Get(hname)
     try:
         htemp.SetDirectory(0)
         htemp.GetYaxis().SetTitleOffset(1.1)
         htemp.GetZaxis().SetTitleOffset(1.0)
         htemp.GetZaxis().SetRangeUser(0., 100.)
+        htemp.GetZaxis().SetTitle("")
         histos.append(htemp)
     except:
         print "Unable to find hist:", hname
