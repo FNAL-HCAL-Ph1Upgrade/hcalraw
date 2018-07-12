@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import collections, optparse, os
 import graphs, oneRun, printer, utils
@@ -50,7 +50,7 @@ def global_eos(run, hhmmMin=None, quiet=False):
             coords = filter(lambda x: hhMin < x[2] or (hhMin == x[2] and mmMin <= x[3]), coords)
             if not quiet:
                 for c in coords:
-                    print c
+                    print(c)
 
         files = []
         for c in coords:
@@ -71,7 +71,7 @@ def report(fileNames):
 def override(options, run, nRuns):
     # Only override output file name if default
     if options.outputFile == "output/latest.root":
-	options.outputFile = "output/%d.root" % run
+        options.outputFile = "output/%d.root" % run
     if not options.nEventsMax:
         options.nEventsMax = 4
 
@@ -127,7 +127,7 @@ def pruned(files):
         pieces[filename].append(f)
 
     out = []
-    for filename, bases in sorted(pieces.iteritems()):
+    for filename, bases in sorted(pieces.items()):
         out.append(sorted(bases)[0])
 
     return out

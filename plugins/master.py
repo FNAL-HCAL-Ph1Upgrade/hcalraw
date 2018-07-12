@@ -34,7 +34,7 @@ capIDpedestalRange_events = len(capIDpedestalRange)
 pedestalScanRange_events = len(pedestalScanRange)
 iQiScanRange_events = len(iQiScanRange)
 gselScanRange_events = len(gselScanRange)
-phaseScanRange_events = len(phaseScanRange) / 2
+phaseScanRange_events = int(len(phaseScanRange) / 2)
 
 
 
@@ -181,7 +181,7 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
                                 uniqueID = ""
                                 binValues = []
                                 isError = False
-                                for b in xrange(hist.GetNbinsX()):
+                                for b in range(hist.GetNbinsX()):
                                     if (hist.GetBinError(b) != 0) and not isError:
                                         printer.warning("Slot %d Fiber %d linkTestMode RMS Error" % (slot,fib))
                                         isError = True
@@ -190,7 +190,7 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
                                 minor = 0
 
                                 # Check for bad link
-                                if (len(set(binValues[0:8])) == 1 and (binValues[0] == 255 or binValues[0] == 0)):
+                                if len(set(binValues[0:8])) == 1 and binValues[0] == 255:
                                     printer.warning("Slot %d Fiber %d linkTestMode Bad Link Error" % (slot,fib))
                                     isError = True
 
@@ -218,8 +218,9 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
                                 uniqueID = "".join([passFail,"0x",str("%0.2X"%binValues[6]),str("%0.2X"%binValues[5]),str("%0.2X"%binValues[4]),str("%0.2X"%binValues[3]),"_0x",str("%0.2X"%binValues[2]),str("%0.2X"%binValues[1]),str("%0.2X"%binValues[0]),"70 ",topBot,str("%X"%binValues[7]),"_",str("%01d"%minor)])
 
                                 # Set uniqueID string as title of TProfile
+                                #hist.SetName("%s_Slot_%d_Fib_%d" % (uniqueID, slot, fib))
                                 hist.SetTitle(uniqueID)
-
+                                
                                 
 
 
