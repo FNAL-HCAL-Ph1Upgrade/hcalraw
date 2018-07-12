@@ -143,7 +143,8 @@ def uniqueID(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, *
                          
                       
                         # Compile uniqueID string
-                        uniqueID = "".join(["0x",str("%0.2X"%binValues[6]),str("%0.2X"%binValues[5]),str("%0.2X"%binValues[4]),str("%0.2X"%binValues[3]),"_0x",str("%0.2X"%binValues[2]),str("%0.2X"%binValues[1]),str("%0.2X"%binValues[0]),"70 ",topBot,str("%X"%binValues[7]),"_",str("%01d"%minor)])
+                        uniqueID = "".join(["0x",str("%0.2X"%binValues[6]),str("%0.2X"%binValues[5]),str("%0.2X"%binValues[4]),str("%0.2X"%binValues[3]),"_0x",str("%0.2X"%binValues[2]),str("%0.2X"%binValues[1]),str("%0.2X"%binValues[0]),"70 ",topBot,str("%X"%binValues[7]),"_",str("%02d"%minor)])
+
                         
 
                         # Set uniqueID as title of TProfile

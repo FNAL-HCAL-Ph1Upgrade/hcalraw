@@ -13,13 +13,17 @@ from configuration import hw, sw
 import printer
 from pprint import pprint
 
-TDC_MAX = 3
+TDC_MAX = 2
 ADC_THRESHOLD = 20
 
-EVT_START = 11201
+
+#EVT_START = 11201
+EVT_START = 1
+
 EVENTS_PER_SETTING = 100
 MAX_SETTINGS = 100
 phase_bins = [1 + n * EVENTS_PER_SETTING for n in range(MAX_SETTINGS + 1)]
+TOTAL_EVENTS = MAX_SETTINGS * EVENTS_PER_SETTING
 
 # Other slot 2 links will be ignored
 SLOT2_FIBERS = [0, 1, 2, 3, 4, 5, 7, 8]
@@ -35,6 +39,7 @@ def iQi_phaseScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fal
 
         nTsMax = raw[None]["firstNTs"]
         #print "nTsMax = ", nTsMax
+
         for fedId, dct in raw.items():
             if fedId is None:
                 continue
@@ -42,7 +47,8 @@ def iQi_phaseScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fal
             h = dct["header"]
             # Event number 
             evt = h["EvN"]
-            if evt < EVT_START: continue
+            #if evt < EVT_START: continue
+
             # get the important chunks of raw data
             blocks = dct["htrBlocks"].values()
             # sanity checks for chunks
@@ -98,6 +104,8 @@ def iQi_phaseScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fal
                             charge = float(adcCharges[adc])
                             
                             #if (fib == 4 and fibCh == 4):
+                            book.fill((evt, charge), "TS_%d_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts,slot,fib,fibCh), TOTAL_EVENTS, 0.5, TOTAL_EVENTS+0.5, title="HB QC Scan  Slot %d Fiber %d Ch %d  TS %d;Event number;Charge [fC]" % (slot, fib, fibCh, ts))
+
                             book.fill((ts, adc), "ADC_vs_TS_phase_%d_Slot_%d_Fib_%d_Ch_%d" % (scan_bin, slot, fib, fibCh),
                                   (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax-0.5, nAdcMax-0.5),
                                   title="ADC vs TS  Phase scan index %d  Slot %d Fib %d Ch %d;time slice;ADC;Counts / bin" % (scan_bin, slot, fib, fibCh))

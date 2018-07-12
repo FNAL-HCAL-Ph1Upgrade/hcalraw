@@ -17,17 +17,19 @@ from ADC_charge import getADC_charge
 TDC_MAX = 3
 ADC_THRESHOLD = 20
 
+SOI = 3	    # Sample (time slice) of interest
 EVENTS_PER_SETTING = 100
-#MAX_SETTINGS = 64
 MAX_SETTINGS = 13
 setting_bins = [1 + n * EVENTS_PER_SETTING for n in range(MAX_SETTINGS + 1)]
+SKIP_FIRST = 50
+TOTAL_EVENTS = MAX_SETTINGS * EVENTS_PER_SETTING
+GOOD_EVENTS_EXPECTED = MAX_SETTINGS * (EVENTS_PER_SETTING - SKIP_FIRST)
 
-# Other slot 2 links will be ignored
-SLOT2_FIBERS = [0, 1, 2, 3, 4, 5, 7, 8]
 
 # Valid Gsel settings
 GSEL_CODES = [0b00000, 0b00001, 0b00010, 0b00100, 0b01000, 0b10000, 0b10010, \
               0b10100, 0b11000, 0b11010, 0b11100, 0b11110, 0b11111]
+
 
 def iqi_gselScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **other):
     # sanity check
@@ -37,6 +39,7 @@ def iqi_gselScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fals
 
         nTsMax = raw[None]["firstNTs"]
         #print "nTsMax = ", nTsMax
+
         for fedId, dct in raw.items():
             if fedId is None:
                     continue
@@ -49,7 +52,7 @@ def iqi_gselScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fals
             blocks = dct["htrBlocks"].values()
             #pprint(blocks)
             # sanity checks for chunks
-            
+
             #for block in blocks:
             for i, block in enumerate(blocks):
                 if type(block) is not dict:
@@ -58,14 +61,17 @@ def iqi_gselScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fals
                 elif "channelData" not in block:
                     printer.warning("FED %d block has no channelData" % fedId)
                     continue
-        
+
+
                 crate = block["Crate"]
                 slot = block["Slot"]
 
-
+                #with open("block%d.log"%i, "a+") as f:
+                #    pprint(block, stream=f)
                 for channelData in block["channelData"].values():
                     #pprint(channelData)
                     #print "Fiber %d Ch %d  errf = %s"%(channelData["Fiber"], channelData["FibCh"], channelData["ErrF"])
+
                     if channelData["QIE"]:
                         # check error flags
                         errf = "ErrFNZ" if channelData["ErrF"] else "ErrF0"
@@ -73,118 +79,43 @@ def iqi_gselScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fals
                         eq = "!=" if channelData["ErrF"] else "=="
 
                         nAdcMax = 256
-                                
+
+
+                        fib = channelData["Fiber"]
+                        fibCh = channelData["FibCh"]
+
+                        #print "fib %d  fibCh %d" % (fib, fibCh) 
+                        #if not (fib == 1 and fibCh == 3 and slot == 1): 
+                        #    continue 
+
+                        #if slot == 2 and fib not in SLOT2_FIBERS: continue			
+                        #if (iEvent % EVENTS_PER_SETTING < SKIP_FIRST): break  # Skip event 		    
+
+
+                        #print "Event number:", evt
+
                         # ts: time slice
                         for (ts, adc) in enumerate(channelData["QIE"]):
                             if nTsMax <= ts:
                                 break
 
                             #if channelData.get("TDC"):
-                                #print "TS %d channelData['TDC'] = %s" % (i, channelData["TDC"])
 
-                            fib = channelData["Fiber"]
-                            fibCh = channelData["FibCh"]
+                            #print "TS %d channelData['TDC'] = %s" % (i, channelData["TDC"])
 
-                            #print "fib %d  fibCh %d" % (fib, fibCh) 
-                            #if not (fib == 19 and fibCh == 4): 
-                        #	continue 
-                            
-                            # Determine the setting by which bin the event falls into
-                            scan_bin = -1
-                            for b, lim in enumerate(setting_bins):
-                                if evt < lim:
-                                    scan_bin = b - 1
-                                    break
 
-                            # Ignore events which fall outside the bin range
-                            #if scan_bin < 0: continue
-                            #if slot == 2 and fib not in SLOT2_FIBERS: continue
 
-                            charge = getADC_charge(GSEL_CODES[scan_bin], adc)
-                            
+                            scan_bin = (evt -1) / EVENTS_PER_SETTING
+                            #charge = getADC_charge(GSEL_CODES[scan_bin], adc)
+                            charge = getADC_charge(0, adc)
 
+                            #print "Event %d" % (evt)
                             # TS 2
-                            if ts == 2:
-                                book.fill((evt, adc), "TS_2_ADC_vs_EvtNum", (1300, nAdcMax), (-0.5, -0.5), (1299.5, nAdcMax - 0.5), title="ADC vs Event Number  TS 2;Event number;ADC;Counts / bin")  	
-                                
-                                book.fill((evt, adc), "TS_2_ADC_vs_EvtNum_%s" % (errf), (1300, nAdcMax), (-0.5, -0.5), (1299.5, nAdcMax - 0.5), title="ADC vs Event Number  TS 2 (ErrF %s 0);Event number;ADC;Counts / bin" % (eq))  	
-                                #book.fill((evt, adc), "TS_2_ADC_vs_EvtNum_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_2D" % (errf, fedId, crate, slot, fib), (1300, nAdcMax), (-0.5, -0.5), (1299.5, nAdcMax - 0.5), title="ADC vs Event Number  TS 2 FED %d Crate %d Slot %d Fib %d (ErrF %s 0);Event number;ADC;Counts / bin" % (fedId, crate, slot, fib, eq))  
-                                book.fill((evt, adc), "TS_2_ADC_vs_EvtNum_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh), (1300, nAdcMax), (-0.5, -0.5), (1299.5, nAdcMax - 0.5), title="ADC vs Event Number  TS 2 FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Event number;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))  
-                                #book.fill(adc, "TS_2_ADC_vs_EvtNum_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh), nAdcMax, -0.5, nAdcMax - 0.5, title="ADC vs Event Number  TS 2 FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Event number;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq)) 
-                            
-                                book.fill((evt, charge), "TS_2_Charge_vs_EvtNum", (1300, 100), (-0.5, -0.5), (1299.5, 14999.5), title="Charge vs Event Number  TS 2;Event number;Charge [fC];Counts / bin")  	
-                            
-                                book.fill((evt, charge), "TS_2_Charge_vs_EvtNum_%s" % errf, (1300, 100), (-0.5, 299.5), (1299.5, 14999.5), title="Charge vs Event Number  TS 2 (ErrF %s 0);Event number;Charge [fC];Counts / bin" % eq)  	
 
-                                book.fill((evt, charge), "TS_2_Charge_vs_EvtNum_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (fedId, crate, slot, fib, fibCh), (1300, 100), (-0.5, 299.5), (1299.5, 14999.5), title="Charge vs Event Number  TS 2 FED %d Crate %d Slot %d Fib %d Ch %d;Event number;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh))  
+                            if ts == SOI:
+                                book.fill((evt,charge), "gselScan_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (slot, fib, fibCh), TOTAL_EVENTS, 0.5, TOTAL_EVENTS + 0.5, w=charge,title="Charge vs Event Number  TS %d  Slot %d Fib %d Ch %d;Event number;Charge [fC];Counts / bin" % (SOI, slot, fib, fibCh))  
+                            #book.fill((evt,charge), "TS_%d_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts, slot, fib, fibCh), TOTAL_EVENTS, 0.5, TOTAL_EVENTS + 0.5, w=charge,title="Charge vs Event Number  TS %d  Slot %d Fib %d Ch %d;Event number;Charge [fC];Counts / bin" % (ts, slot, fib, fibCh))  
+                            book.fill((evt,adc), "TS_%d_ADC_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts, slot, fib, fibCh), (TOTAL_EVENTS, nAdcMax), (0.5, -0.5), (TOTAL_EVENTS + 0.5, nAdcMax-0.5), title="ADC vs Event Number  TS %d  Slot %d Fib %d Ch %d;Event number;ADC;Counts / bin" % (ts, slot, fib, fibCh))  
 
-#book.fill((ts, charge), "Charge_vs_TS_%s_gsel_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, int(GSEL_CODES[scan_bin]), fedId, crate, slot, fib, fibCh),
-                            #      nTsMax, -0.5, nTsMax-0.5,
-                             #     title="Charge vs TS  Gsel %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (GSEL_CODES[scan_bin], fedId, crate, slot, fib, fibCh, eq))
 
-                            if not fewerHistos:
-                                book.fill((ts, adc), "ADC_vs_TS_%s_gsel_%d" % (errf, int(GSEL_CODES[scan_bin])),
-                                  (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax-0.5, nAdcMax-0.5),
-                                  title="ADC vs TS  Gsel %d  (ErrF %s 0);time slice;ADC;Counts / bin" % (GSEL_CODES[scan_bin], eq))
 
-                                #book.fill((ts, adc), "ADC_vs_TS_%s_gsel_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, int(GSEL_CODES[scan_bin]), fedId, crate, slot, fib, fibCh),
-                                #      nTsMax, -0.5, nTsMax-0.5,
-                                 #     title="ADC vs TS  Gsel %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;ADC;Counts / bin" % (GSEL_CODES[scan_bin], fedId, crate, slot, fib, fibCh, eq))
-
-                                book.fill((ts, adc), "ADC_vs_TS_%s_gsel_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, int(GSEL_CODES[scan_bin]), fedId, crate, slot, fib, fibCh),
-                                  (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax-0.5, nAdcMax-0.5),
-                                  title="ADC vs TS  Gsel %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;ADC;Counts / bin" % (GSEL_CODES[scan_bin], fedId, crate, slot, fib, fibCh, eq))
-                            
-                                book.fill((ts, charge), "Charge_vs_TS_%s_gsel_%d_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, int(GSEL_CODES[scan_bin]), fedId, crate, slot, fib, fibCh),
-                                  (nTsMax, 100), (-0.5, -0.5), (nTsMax-0.5, 20000),
-                                  title="Charge vs TS  Gsel %d  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (GSEL_CODES[scan_bin], fedId, crate, slot, fib, fibCh, eq))
-                             
-                                book.fill((scan_bin, adc),
-                                  "ADC_iQi_GselScan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
-                                  (MAX_SETTINGS, nAdcMax), (-0.5, -0.5), (MAX_SETTINGS - 0.5, nAdcMax - 0.5),
-                                  title="ADC iQi Gsel Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Gsel setting index;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-                               
-                            
-                                book.fill((scan_bin, adc),
-                                  "ADC_iQi_GselScan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
-                                  MAX_SETTINGS, -0.5, MAX_SETTINGS - 0.5,
-                                  title="ADC iQi Gsel Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Gsel setting index;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-                            
-                            
-                            
-                                book.fill((scan_bin, charge),
-                                  "Charge_iQi_GselScan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
-                                  (MAX_SETTINGS, 100), (-0.5, -0.5), (MAX_SETTINGS - 0.5, 20000),
-                                  title="Charge iQi Gsel Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Gsel setting index;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-                               
-
-                                book.fill((scan_bin, charge),
-                                  "Charge_iQi_GselScan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
-                                  MAX_SETTINGS, -0.5, MAX_SETTINGS - 0.5,
-                                  title="Charge iQi Gsel Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Gsel setting index;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-                               
-
-                                tdc = channelData["TDC"][ts]
-                                if adc > ADC_THRESHOLD: 
-                                    book.fill((scan_bin, tdc),
-                                      "TDC_iQi_GselScan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
-                                      (MAX_SETTINGS, TDC_MAX+1), (-0.5, -0.5), (MAX_SETTINGS - 0.5, TDC_MAX + 0.5),
-                                      title="TDC iQi Gsel Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);Gsel setting index;TDC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-                               
-                            
-                            
-                            
-                            """
-                            if i > 0:
-                            book.fill((i, adc), 
-                                                  "NoTS0_ADC_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh), (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax - 0.5, nAdcMax - 0.5),
-                                                  title="ADC vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-
-                            book.fill((i, charge), "NoTS0_Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
-                                  nTsMax, -0.5, nTsMax-0.5,
-                                  title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-
-                            book.fill((i, charge), "NoTS0_Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
-                                  (nTsMax, 100), (-0.5, -0.5), (nTsMax-0.5, 20000),
-                                  title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
-                            """

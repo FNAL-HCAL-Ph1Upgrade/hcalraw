@@ -57,53 +57,140 @@ def iQiScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **
                     printer.warning("FED %d block has no channelData" % fedId)
                     continue
 	
-                crate = block["Crate"]
-                slot = block["Slot"]
 
+		crate = block["Crate"]
+		slot = block["Slot"]
 
-                for channelData in block["channelData"].values():
-                    #pprint(channelData)
-                    #print "Fiber %d Ch %d  errf = %s"%(channelData["Fiber"], channelData["FibCh"], channelData["ErrF"])
-                    if channelData["QIE"]:
-                        # check error flags
-                        errf = "ErrFNZ" if channelData["ErrF"] else "ErrF0"
-                        # Clean or problematic error flag
-                        eq = "!=" if channelData["ErrF"] else "=="
+		#with open("block%d.log"%i, "a+") as f:
+		#    pprint(block, stream=f)
 
-                        nAdcMax = 256
-                                
-                        if evt not in range(9701, 9801): continue
-                        # ts: time slice
-                        for (ts, adc) in enumerate(channelData["QIE"]):
-                            if nTsMax <= ts:
-                                break
+		for channelData in block["channelData"].values():
+		    #pprint(channelData)
+		    #print "Fiber %d Ch %d  errf = %s"%(channelData["Fiber"], channelData["FibCh"], channelData["ErrF"])
+		    if channelData["QIE"]:
+			# check error flags
+			errf = "ErrFNZ" if channelData["ErrF"] else "ErrF0"
+			# Clean or problematic error flag
+			eq = "!=" if channelData["ErrF"] else "=="
 
-                            #if channelData.get("TDC"):
-                                #print "TS %d channelData['TDC'] = %s" % (i, channelData["TDC"])
+			nAdcMax = 256
+					
+			# ts: time slice
+			for (ts, adc) in enumerate(channelData["QIE"]):
+			    if nTsMax <= ts:
+				break
 
-                            fib = channelData["Fiber"]
-                            fibCh = channelData["FibCh"]
-                            
-                            if slot != 2: continue
+				#if channelData.get("TDC"):
+		    		#print "TS %d channelData['TDC'] = %s" % (i, channelData["TDC"])
+
+			    fib = channelData["Fiber"]
+			    fibCh = channelData["FibCh"]
+
+			    if slot != 2: continue
                             if slot == 2 and fib not in SLOT2_FIBERS: continue
+                            if evt not in xrange(9001, 9801): continue
+			    # Determine the setting by which bin the event falls into
+			    #scan_bin = -1
+			    #for b, lim in enumerate(setting_bins):
+				#if evt < lim:
+				#    scan_bin = b - 1
+				#    break
 
-                            # Determine the setting by which bin the event falls into
-                            #scan_bin = -1
-                            #for b, lim in enumerate(setting_bins):
-                            #if evt < lim:
-                            #    scan_bin = b - 1
-                            #    break
+			    # Ignore events which fall outside the bin range
+			    #if scan_bin < 0: continue
+                            scan_bin = (9801-evt)/100
 
-                            # Ignore events which fall outside the bin range
-                            #if scan_bin < 0: continue
-                            #scan_bin = (evt-9001)/100
-                            #print("Evt: %d\tscan_bin: %d" % (evt,scan_bin))
+
                             charge = float(adcCharges[adc])
-                            book.fill((ts, adc), "ADC_vs_TS_Slot_%d_Fib_%d_Ch_%d_2D" % (slot, fib, fibCh), (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax - 0.5, nAdcMax - 0.5), title="ADC vs TS  Slot %d Fib %d Ch %d;time slice;ADC;Counts / bin" % (slot, fib, fibCh))
+
+                            if scan_bin == 7:
+                                book.fill((ts, adc), "ADC_vs_TS_Slot_%d_Fib_%d_Ch_%d_2D" % (slot, fib, fibCh), (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax - 0.5, nAdcMax - 0.5), title="ADC vs TS  Slot %d Fib %d Ch %d;time slice;ADC;Counts / bin" % (slot, fib, fibCh))
                             continue
                             if ts == SOI:
-                                book.fill((evt,charge), "TS_%d_Charge_vs_EvtNum_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (SOI, fedId, crate, slot, fib, fibCh), TOTAL_EVENTS, 0.5, TOTAL_EVENTS + 0.5, title="Charge vs Event Number  TS %d FED %d Crate %d Slot %d Fib %d Ch %d;Event number;Charge [fC];QIE channels / bin" % (SOI, fedId, crate, slot, fib, fibCh))
-                            continue
+				book.fill((evt,charge), "TS_%d_Charge_vs_EvtNum_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (SOI, fedId, crate, slot, fib, fibCh), TOTAL_EVENTS, 0.5, TOTAL_EVENTS + 0.5, title="Charge vs Event Number  TS %d FED %d Crate %d Slot %d Fib %d Ch %d;Event number;Charge [fC];QIE channels / bin" % (SOI, fedId, crate, slot, fib, fibCh))
+			    continue
 
 
 
+			    """
+			    book.fill((evt, adc), "TS_%d_ADC_vs_EvtNum" % ts, (TOTAL_EVENTS, nAdcMax), (-0.5, -0.5), (TOTAL_EVENTS - 0.5, nAdcMax - 0.5), title="ADC vs Event Number  TS %d;Event number;ADC;Counts / bin"%ts)
+			    book.fill((evt, adc), "TS_%d_ADC_vs_EvtNum_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D_all" % (ts, fedId, crate, slot, fib, fibCh), (TOTAL_EVENTS, nAdcMax), (-0.5, -0.5), (TOTAL_EVENTS - 0.5, nAdcMax - 0.5), title="ADC vs Event Number  TS %d FED %d Crate %d Slot %d Fib %d Ch %d;Event number;ADC;Counts / bin" % (ts, fedId, crate, slot, fib, fibCh))
+
+			    book.fill((evt, adc), "TS_%d_Charge_vs_EvtNum"%ts, (TOTAL_EVENTS, nAdcMax), (-0.5, -0.5), (TOTAL_EVENTS - 0.5, 20000 - 0.5), title="Charge vs Event Number  TS %d;Event number;Charge [fC];Counts / bin"%ts)
+			    book.fill((evt, adc), "TS_%d_Charge_vs_EvtNum_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (ts, fedId, crate, slot, fib, fibCh), (TOTAL_EVENTS, nAdcMax), (-0.5, -0.5), (TOTAL_EVENTS - 0.5, 20000 - 0.5), title="Charge vs Event Number  TS %d FED %d Crate %d Slot %d Fib %d Ch %d;Event number;Charge [fC];Counts / bin" % (ts, fedId, crate, slot, fib, fibCh))
+			    """
+			    if ts == SOI:
+				book.fill((evt, adc), "TS_%d_ADC_vs_EvtNum_2D" % SOI, (TOTAL_EVENTS, nAdcMax), (0.5, -0.5), (TOTAL_EVENTS + 0.5, nAdcMax - 0.5), title="ADC vs Event Number  TS %d;Event number;ADC;Counts / bin"%SOI)
+				book.fill(evt, "TS_%d_ADC_vs_EvtNum_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_1D" % (SOI, fedId, crate, slot, fib, fibCh), TOTAL_EVENTS, 0.5, TOTAL_EVENTS + 0.5,w=adc, title="ADC vs Event Number  TS %d FED %d Crate %d Slot %d Fib %d Ch %d;Event number;ADC;Counts / bin" % (SOI, fedId, crate, slot, fib, fibCh))
+				book.fill((evt, adc), "TS_%d_ADC_vs_EvtNum_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (SOI, fedId, crate, slot, fib, fibCh), (TOTAL_EVENTS, nAdcMax), (0.5, -0.5), (TOTAL_EVENTS + 0.5, nAdcMax - 0.5), title="ADC vs Event Number  TS %d FED %d Crate %d Slot %d Fib %d Ch %d;Event number;ADC;Counts / bin" % (SOI, fedId, crate, slot, fib, fibCh))
+
+				book.fill((evt, charge), "TS_%d_Charge_vs_EvtNum_2D"%SOI, (TOTAL_EVENTS, nAdcMax), (0.5, -0.5), (TOTAL_EVENTS + 0.5, 15000 - 0.5), title="ChargeInjectDAC Scan  TS %d;Event number;Charge [fC];QIE channels / bin"%SOI)
+				book.fill((evt, charge), "TS_%d_Charge_vs_EvtNum_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (SOI, fedId, crate, slot, fib, fibCh), (TOTAL_EVENTS, nAdcMax), (0.5, -0.5), (TOTAL_EVENTS + 0.5, 15000 - 0.5), title="Charge vs Event Number  TS %d FED %d Crate %d Slot %d Fib %d Ch %d;Event number;Charge [fC];QIE channels / bin" % (SOI, fedId, crate, slot, fib, fibCh))
+				book.fill(evt, "TS_%d_Charge_vs_EvtNum_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_1D" % (SOI, fedId, crate, slot, fib, fibCh), TOTAL_EVENTS, 0.5, TOTAL_EVENTS + 0.5,w=charge, title="Charge vs Event Number  TS %d FED %d Crate %d Slot %d Fib %d Ch %d;Event number;Charge [fC];QIE channels / bin" % (SOI, fedId, crate, slot, fib, fibCh))
+			    book.fill((scan_bin, adc),
+				      "ADC_iQi_scan_2D",
+				      (MAX_SETTINGS, nAdcMax), (-0.5, -0.5), (MAX_SETTINGS - 0.5, nAdcMax - 0.5),
+				      title="ADC iQi Scan;ChargeInjectDAC setting;ADC;Counts / bin")
+			    book.fill((scan_bin, adc),
+				      "ADC_iQi_scan_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (fedId, crate, slot, fib, fibCh),
+				      (MAX_SETTINGS, nAdcMax), (-0.5, -0.5), (MAX_SETTINGS - 0.5, nAdcMax - 0.5),
+				      title="ADC iQi Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);ChargeInjectDAC setting;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+			   
+
+#			    book.fill((scan_bin, adc),
+#				      "ADC_iQi_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
+#				      MAX_SETTINGS, -0.5, MAX_SETTINGS - 0.5,
+#				      title="ADC iQi Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);ChargeInjectDAC setting;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+			    
+			    book.fill((i, adc), 
+                                      "ADC_vs_TS_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (fedId, crate, slot, fib, fibCh), (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax - 0.5, nAdcMax - 0.5),
+                                      title="ADC vs TS  FED %d Crate %d Slot %d Fib %d Ch %d;time slice;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh))
+			    
+			    
+			    book.fill((scan_bin, charge),
+				      "Charge_iQi_scan_2D", 
+				      (MAX_SETTINGS, 100), (-0.5, -0.5), (MAX_SETTINGS - 0.5, 20000),
+				      title="Charge iQi Scan;ChargeInjectDAC setting;Charge [fC];Counts / bin") 
+			    book.fill((scan_bin, charge),
+				      "Charge_iQi_scan_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (fedId, crate, slot, fib, fibCh),
+				      (MAX_SETTINGS, 100), (-0.5, -0.5), (MAX_SETTINGS - 0.5, 20000),
+				      title="Charge iQi Scan  FED %d Crate %d Slot %d Fib %d Ch %d;ChargeInjectDAC setting;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh))
+			   
+			    continue
+#			    book.fill((scan_bin, charge),
+#				      "Charge_iQi_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
+#				      MAX_SETTINGS, -0.5, MAX_SETTINGS - 0.5,
+#				      title="Charge iQi Scan  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);ChargeInjectDAC setting;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+			    
+			    tdc = channelData["TDC"][ts]
+			    if adc > ADC_THRESHOLD: 
+				book.fill((scan_bin, tdc),
+					  "TDC_iQi_scan_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
+					  (MAX_SETTINGS, TDC_MAX+1), (-0.5, -0.5), (MAX_SETTINGS - 0.5, TDC_MAX + 0.5),
+					  title="TDC iQi Scan  (event ADC > %d)  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);ChargeInjectDAC setting;TDC;Counts / bin" % (ADC_THRESHOLD, fedId, crate, slot, fib, fibCh, eq))
+			       
+			    
+
+			    
+			    """ 
+			    book.fill((i, charge), "Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
+				      nTsMax, -0.5, nTsMax-0.5,
+				      title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+
+			    book.fill((i, charge), "Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
+				      (nTsMax, 100), (-0.5, -0.5), (nTsMax-0.5, 20000),
+				      title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+			   
+			    if i > 0:
+				book.fill((i, adc), 
+                                      "NoTS0_ADC_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh), (nTsMax, nAdcMax), (-0.5, -0.5), (nTsMax - 0.5, nAdcMax - 0.5),
+                                      title="ADC vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;ADC;Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+
+				book.fill((i, charge), "NoTS0_Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d" % (errf, fedId, crate, slot, fib, fibCh),
+				      nTsMax, -0.5, nTsMax-0.5,
+				      title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+
+				book.fill((i, charge), "NoTS0_Charge_vs_TS_%s_FED_%d_Crate_%d_Slot_%d_Fib_%d_Ch_%d_2D" % (errf, fedId, crate, slot, fib, fibCh),
+				      (nTsMax, 100), (-0.5, -0.5), (nTsMax-0.5, 20000),
+				      title="Charge vs TS  FED %d Crate %d Slot %d Fib %d Ch %d (ErrF %s 0);time slice;Charge [fC];Counts / bin" % (fedId, crate, slot, fib, fibCh, eq))
+			    """
