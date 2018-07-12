@@ -1,7 +1,7 @@
 #####################################################################
-#  iQiScan.py							    #
+#  iqi_gselScan.py						    #
 #								    #		
-#  hcalraw plugin for analyzing iQi scan data			    #
+#  hcalraw plugin for analyzing iQi shunt scan data		    #
 #								    #
 #  Usage:							    #
 #  Select with the --plugins option in oneRun.py or look.py	    #
@@ -16,6 +16,7 @@ from ADC_charge import getADC_charge
 
 TDC_MAX = 3
 ADC_THRESHOLD = 20
+
 SOI = 3	    # Sample (time slice) of interest
 EVENTS_PER_SETTING = 100
 MAX_SETTINGS = 13
@@ -29,28 +30,29 @@ GOOD_EVENTS_EXPECTED = MAX_SETTINGS * (EVENTS_PER_SETTING - SKIP_FIRST)
 GSEL_CODES = [0b00000, 0b00001, 0b00010, 0b00100, 0b01000, 0b10000, 0b10010, \
               0b10100, 0b11000, 0b11010, 0b11100, 0b11110, 0b11111]
 
-def iQi_gselScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **other):
+
+def iqi_gselScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **other):
     # sanity check
-    #print "Entering top of main loop.."
     for r, raw in enumerate([raw1, raw2]):
         if not raw:
             continue
 
         nTsMax = raw[None]["firstNTs"]
         #print "nTsMax = ", nTsMax
-        for fedId, dct in sorted(raw.iteritems()):
+
+        for fedId, dct in raw.items():
             if fedId is None:
-                continue
-            
+                    continue
+                
             h = dct["header"]
             # Event number 
             evt = h["EvN"]
+
             # get the important chunks of raw data
             blocks = dct["htrBlocks"].values()
             #pprint(blocks)
             # sanity checks for chunks
 
-            #print "evt %d\tiEvent %d" % (evt, iEvent)
             #for block in blocks:
             for i, block in enumerate(blocks):
                 if type(block) is not dict:
@@ -59,6 +61,7 @@ def iQi_gselScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fals
                 elif "channelData" not in block:
                     printer.warning("FED %d block has no channelData" % fedId)
                     continue
+
 
                 crate = block["Crate"]
                 slot = block["Slot"]
@@ -77,6 +80,7 @@ def iQi_gselScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fals
 
                         nAdcMax = 256
 
+
                         fib = channelData["Fiber"]
                         fibCh = channelData["FibCh"]
 
@@ -89,12 +93,14 @@ def iQi_gselScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fals
 
 
                         #print "Event number:", evt
+
                         # ts: time slice
                         for (ts, adc) in enumerate(channelData["QIE"]):
                             if nTsMax <= ts:
                                 break
 
                             #if channelData.get("TDC"):
+
                             #print "TS %d channelData['TDC'] = %s" % (i, channelData["TDC"])
 
 
@@ -110,5 +116,6 @@ def iQi_gselScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=Fals
                                 book.fill((evt,charge), "gselScan_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (slot, fib, fibCh), TOTAL_EVENTS, 0.5, TOTAL_EVENTS + 0.5, w=charge,title="Charge vs Event Number  TS %d  Slot %d Fib %d Ch %d;Event number;Charge [fC];Counts / bin" % (SOI, slot, fib, fibCh))  
                             #book.fill((evt,charge), "TS_%d_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts, slot, fib, fibCh), TOTAL_EVENTS, 0.5, TOTAL_EVENTS + 0.5, w=charge,title="Charge vs Event Number  TS %d  Slot %d Fib %d Ch %d;Event number;Charge [fC];Counts / bin" % (ts, slot, fib, fibCh))  
                             book.fill((evt,adc), "TS_%d_ADC_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts, slot, fib, fibCh), (TOTAL_EVENTS, nAdcMax), (0.5, -0.5), (TOTAL_EVENTS + 0.5, nAdcMax-0.5), title="ADC vs Event Number  TS %d  Slot %d Fib %d Ch %d;Event number;ADC;Counts / bin" % (ts, slot, fib, fibCh))  
+
 
 

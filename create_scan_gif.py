@@ -52,7 +52,9 @@ usage = 'usage: %prog [options]'
 parser = optparse.OptionParser(usage)
 parser.add_option('-i', '--inF', dest='inF', help='input file', default=None, type='string')
 parser.add_option('-o', '--outF', dest='outF', help='output file name', default="", type='string')
+
 parser.add_option('--scan', dest='scan', help='scan type (gsel, phase, or iqi)', default="iqi", type='string')
+
 parser.add_option('-s', '--slot', dest='slot', type = 'int', help = "slot number")
 parser.add_option('-f', '--fiber', dest='fiber', type = 'int', help = "fiber number")
 parser.add_option('-c', '--channel', dest='fibch', type = 'int', help = "fiber channel")
@@ -77,8 +79,10 @@ try:
 	    FRAMES = 13
     elif opt.scan == "phase":
 	    FRAMES = 100
+
     elif opt.scan == "iqi":
         FRAMES = 10000
+
         #FRAMES = range(50) + range(64, 114) 
     else:
 	    print "Unrecognized --scan option  (hint: gsel or phase)"
@@ -96,6 +100,7 @@ for i in xrange(FRAMES):
         hname = "ADC_vs_TS_Evt_%d_Slot_%d_Fib_%d_Ch_%d" % (i+1, opt.slot, opt.fiber, opt.fibch)
     else:
         hname = "ADC_vs_TS_%s_%s_Slot_%d_Fib_%d_Ch_%d" % (opt.scan, i if opt.scan == "phase" else GSEL_CODES[i], opt.slot, opt.fiber, opt.fibch)
+
     htemp = f.Get(hname)
     try:
         htemp.SetDirectory(0)

@@ -1,7 +1,8 @@
 import collections
 from configuration import hw, sw
 import printer
-
+from pprint import pprint
+from operator import itemgetter
 
 def histogram(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **_):
     for i, raw in enumerate([raw1, raw2]):
@@ -9,13 +10,17 @@ def histogram(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, 
             continue
         loop_over_feds(raw, book, adcTag="feds%d" % (1 + i), warn=warnQuality, fewerHistos=fewerHistos)
 
+def sortdict(d, **opts):
+    # **opts so any currently supported sorted() options can be passed
+    for k in sorted(d, **opts):
+        yield k, d[k]
 
 def loop_over_feds(raw, book, adcTag="", **other):
     okFeds = set()
     adcs = set()
-
     nTsMax = raw[None]["firstNTs"]
-    for fedId, dct in sorted(raw.iteritems()):
+    #for fedId, dct in sorted(list(raw.items())):
+    for fedId, dct in raw.items():
         if fedId is None:
             continue
 
@@ -89,7 +94,7 @@ def singleFedPlots(fedId=None, d={}, book={}, nTsMax=None, **other):
     errFSum = 0.0 + sum(ErrF.values())
 
     if errFSum:
-        for code, n in ErrF.iteritems():
+        for code, n in ErrF.items():
             title = "FED %d;frac. chan. with ErrF == %d;Events / bin" % (fedId, code)
             book.fill(n/errFSum, "ErrF%d_%d" % (code, fedId), 44, 0.0, 1.1, title=title)
 
@@ -140,7 +145,7 @@ def singleFedPlots(fedId=None, d={}, book={}, nTsMax=None, **other):
 
 def checkHtrModules(fedId=None, spigots=[], htrBlocks={}):
     crates = []
-    for iBlock, block in htrBlocks.iteritems():
+    for iBlock, block in htrBlocks.items():
         if block["IsTTP"]:
             continue
 
@@ -265,7 +270,7 @@ def htrSummary(blocks=[], book=None, fedId=None,
             if techData["technicalDataType"] or techData["channelId"] or techData["words"]:
                 flavor(book, techData, fedId)
 
-        for triggerKey, triggerData in block["triggerData"].iteritems():
+        for triggerKey, triggerData in block["triggerData"].items():
             if "Flavor" in triggerData:
                 flavor(book, triggerData, fedId)
 

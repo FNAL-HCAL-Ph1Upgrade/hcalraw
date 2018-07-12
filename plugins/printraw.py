@@ -21,7 +21,8 @@ def oneEvent(d={}, slim1=False):
         printer.purple("%4s iEntry 0x%08x (%d)" % (aux["label"], aux["iEntry"], aux["iEntry"]))
 
     printHeaders = not (slim1 and aux["iEntry"])
-    for fedId, data in sorted(d.iteritems()):
+    #for fedId, data in sorted(d.iteritems()):
+    for fedId, data in d.items():
         if fedId is None:
             continue
         if data["other"]:
@@ -41,7 +42,7 @@ def oneEvent(d={}, slim1=False):
                    )
         printHeaders = True
     if not slim1:
-        print
+        print()
 
 
 def htrOverview(d={}):
@@ -77,7 +78,7 @@ def oneHtr(iBlock=None, p={}, dump=None, utca=None,
     try:
         zs = p.get("ZS")
     except TypeError as e:
-        print "iBlock='%s':" % str(iBlock), e
+        print("iBlock='%s':" % str(iBlock), e)
         return
 
     if "nWord16Qie" in p:
@@ -144,7 +145,7 @@ def oneHtr(iBlock=None, p={}, dump=None, utca=None,
     if dump <= 3:
         return
 
-    kargs = {"skipFibers": [0, 1] + range(3, 14) + range(15, 24) if (dump == 4) else [],
+    kargs = {"skipFibers": [0, 1] + list(range(4, 19)) + list(range(20, 24)) if (dump == 4) else [],
              "skipFibChs": [0, 2, 3, 4, 5, 6, 7] if (4 <= dump <= 7) else [],
              "nonMatched": nonMatchedQie,
              "latency": p.get("Latency"),
@@ -239,7 +240,8 @@ def htrTriggerData(d={}, dump=None, crate=None, slot=None, top="", nonMatched=[]
     if zs:
         columns.append("  ZS?")
     out = ["  ".join(columns)]
-    for key, dct in sorted(d.iteritems()):
+    #for key, dct in sorted(d.iteritems()):
+    for key, dct in d.items():
         slb, ch = key
         z = ""
         soi = ""
@@ -283,7 +285,8 @@ def uhtrTriggerData(d={}, dump=None, crate=None, slot=None, top="", nonMatched=[
                           "    ".join([str(i) for i in range(4)])
                           ])
                )
-    for channelId, data in sorted(d.iteritems()):
+    #for channelId, data in sorted(d.iteritems()):
+    for channelId, data in d.items():
         if (dump <= 8) and not any(data["TP"]):
             continue
         soi = ""
@@ -398,7 +401,8 @@ def ioData(p):
     l.append("   ".join(columns))
 
     lst = []
-    for (k, v) in sorted(p["UserWords"].iteritems()):
+    #for (k, v) in sorted(p["UserWords"].iteritems()):
+    for (k, v) in p["UserWords"].items():
         if v is None:
             lst.append("%04x:[None]" % k)
         else:
@@ -468,7 +472,8 @@ def oneFedHcal(d={}, dump=None, crateslots=[],
     if dump <= 2:
         return
 
-    for iBlock, block in sorted(d["htrBlocks"].iteritems()):
+    #for iBlock, block in sorted(d["htrBlocks"].iteritems()):
+    for iBlock, block in d["htrBlocks"].items():
         if crateslots and (100*block["Crate"] + block["Slot"]) not in crateslots:
             continue
         oneHtr(iBlock=iBlock,
@@ -492,7 +497,8 @@ def oneFedMol(d):
     printer.blue("--MOL" + ("-" * len(header)))
     printer.blue(header)
 
-    for iBlock, value in sorted(d.iteritems()):
+    #for iBlock, value in sorted(d.iteritems()):
+    for iBlock, value in d.items():
         printer.blue("   ".join(["  %3d" % value["FEDid"],
                                  "0x%07x" % value["Trigger"],
                                  "%5d" % iBlock,

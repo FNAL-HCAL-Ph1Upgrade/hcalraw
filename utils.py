@@ -75,14 +75,22 @@ def ROOT():
 
     for moduleName in moduleNames:
         try:
+            #exec("import %s as r" % moduleName, globals())
+            #exec("import %s as r" % moduleName, scope)
             exec("import %s as r" % moduleName)
             if moduleName != "ROOT":
-                print "Using " + moduleName
+                print("Using " + moduleName)
             r.PyConfig.IgnoreCommandLineOptions = True
+            print(scope)
             return r
         except ImportError:
             continue
-
+        except UnboundLocalError:
+            try:
+                import ROOT as r
+            except:
+                continue
+    
     findROOT()
     try:
         import ROOT as r

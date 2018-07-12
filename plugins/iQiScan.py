@@ -33,20 +33,20 @@ def iQiScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **
         if not raw:
             continue
 
-	nTsMax = raw[None]["firstNTs"]
+        nTsMax = raw[None]["firstNTs"]
         #print "nTsMax = ", nTsMax
-	for fedId, dct in sorted(raw.iteritems()):
-	    if fedId is None:
+        for fedId, dct in raw.items():
+            if fedId is None:
                 continue
             
-	    h = dct["header"]
-	    # Event number 
-	    evt = h["EvN"]
+            h = dct["header"]
+            # Event number 
+            evt = h["EvN"]
 
             # get the important chunks of raw data
             blocks = dct["htrBlocks"].values()
-	    #pprint(blocks)
-	    # sanity checks for chunks
+	        #pprint(blocks)
+	        # sanity checks for chunks
 	    
             #for block in blocks:
             for i, block in enumerate(blocks):
@@ -57,6 +57,7 @@ def iQiScan(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **
                     printer.warning("FED %d block has no channelData" % fedId)
                     continue
 	
+
 		crate = block["Crate"]
 		slot = block["Slot"]
 
