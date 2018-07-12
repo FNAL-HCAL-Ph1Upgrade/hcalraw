@@ -9,6 +9,7 @@ def files_this_machine(run, nCyclesMax=1):
                  "data/FNAL_",
                  "/tmp/USC_",
                  "/tmp/FNAL_",
+                 "/home/hcalpro/DATA/FNAL_",
                  "/hcaldepot1/data/USC_",
                  "data/B904_Integration_0000",
                  "data/B904_Integration_10000",

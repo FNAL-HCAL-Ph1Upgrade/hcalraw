@@ -52,7 +52,7 @@ usage = 'usage: %prog [options]'
 parser = optparse.OptionParser(usage)
 parser.add_option('-i', '--inF', dest='inF', help='input file', default=None, type='string')
 parser.add_option('-o', '--outF', dest='outF', help='output file name', default="", type='string')
-parser.add_option('--scan', dest='scan', help='scan type (gsel or phase)', default="phase", type='string')
+parser.add_option('--scan', dest='scan', help='scan type (gsel, phase, or iqi)', default="iqi", type='string')
 parser.add_option('-s', '--slot', dest='slot', type = 'int', help = "slot number")
 parser.add_option('-f', '--fiber', dest='fiber', type = 'int', help = "fiber number")
 parser.add_option('-c', '--channel', dest='fibch', type = 'int', help = "fiber channel")
@@ -77,6 +77,8 @@ try:
 	    FRAMES = 13
     elif opt.scan == "phase":
 	    FRAMES = 100
+    elif opt.scan == "iqi":
+        FRAMES = 10000
         #FRAMES = range(50) + range(64, 114) 
     else:
 	    print "Unrecognized --scan option  (hint: gsel or phase)"
@@ -90,7 +92,10 @@ histos = []
 for i in xrange(FRAMES):
     htemp = None
     #htemp = f.Get("ADC_vs_TS_ErrF0_%s_%d_FED_1776_Crate_41_Slot_1_Fib_4_Ch_4_2D" % (opt.scan, i if opt.scan != "gsel" else GSEL_CODES[i]))
-    hname = "ADC_vs_TS_%s_%d_Slot_%d_Fib_%d_Ch_%d" % (opt.scan, i if opt.scan == "phase" else GSEL_CODES[i], opt.slot, opt.fiber, opt.fibch)
+    if opt.scan == "iqi":
+        hname = "ADC_vs_TS_Evt_%d_Slot_%d_Fib_%d_Ch_%d" % (i+1, opt.slot, opt.fiber, opt.fibch)
+    else:
+        hname = "ADC_vs_TS_%s_%s_Slot_%d_Fib_%d_Ch_%d" % (opt.scan, i if opt.scan == "phase" else GSEL_CODES[i], opt.slot, opt.fiber, opt.fibch)
     htemp = f.Get(hname)
     try:
         htemp.SetDirectory(0)
@@ -157,6 +162,9 @@ if opt.scan == "phase":
     os.system("cd %s" % tempdir + ";echo '%s' > file.tx" % tempfiles + ";" + command + ";cd ..")
 elif opt.scan == "gsel":
     command = "convert -loop 0 -delay 50 @file.tx -delay 150 tmp_%d.png %s" % (FRAMES-1, name)
+    os.system("cd %s" % tempdir + ";echo '%s' > file.tx" % tempfiles + ";" + command + ";cd ..")
+elif opt.scan == "iqi":
+    command = "convert -loop 0 -delay 10 @file.tx -delay 150 tmp_%d.png %s" % (FRAMES-1, name)
     os.system("cd %s" % tempdir + ";echo '%s' > file.tx" % tempfiles + ";" + command + ";cd ..")
 print "done!"
 os.system("rm -rf %s" % tempdir)

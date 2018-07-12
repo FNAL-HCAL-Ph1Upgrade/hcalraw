@@ -34,7 +34,7 @@ capIDpedestalRange_events = len(capIDpedestalRange)
 pedestalScanRange_events = len(pedestalScanRange)
 iQiScanRange_events = len(iQiScanRange)
 gselScanRange_events = len(gselScanRange)
-phaseScanRange_events = len(phaseScanRange)
+phaseScanRange_events = len(phaseScanRange) / 2
 
 
 uniqueIDRange_min = min(uniqueIDRange)
@@ -64,8 +64,10 @@ iQiScanRange_binMin = iQiScanRange_min - 0.5
 iQiScanRange_binMax = iQiScanRange_max + 0.5
 gselScanRange_binMin = gselScanRange_min - 0.5
 gselScanRange_binMax = gselScanRange_max + 0.5
-phaseScanRange_binMin = phaseScanRange_min - 0.5
-phaseScanRange_binMax = phaseScanRange_max + 0.5
+#phaseScanRange_binMin = phaseScanRange_min - 0.5
+#phaseScanRange_binMax = phaseScanRange_max + 0.5
+phaseScanRange_binMin = 0.5
+phaseScanRange_binMax = phaseScanRange_events + 0.5
 
 
 #TDC_MAX = 3
@@ -126,7 +128,7 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
 
                         #if slot != 2: continue
                         #if slot == 2 and fib not in SLOT2_FIBERS: continue			
-                        if slot == 2 and fib > 7: continue 
+                        #if slot == 2 and fib > 7: continue 
                         
                         # ts: time slice
                         for (ts, adc) in enumerate(channelData["QIE"]):
@@ -134,38 +136,40 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
                                 break
 
                             tdc = channelData["TDC"][ts]
-
+                            #book.fill((evt, adc), "TS_%d_ADC_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts,slot,fib,fibCh), (TOTAL_EVENTS, 256), (0.5, -0.5), (TOTAL_EVENTS_binMax, 255.5), title="HB QC Scan  Slot %d Fiber %d Ch %d  TS %d;Event number;ADC" % (slot, fib, fibCh, ts))
 
                             charge = adcToCharge[adc] 
                            
                             if not fewerHistos:
                                 book.fill((evt, charge), "TS_%d_Charge_vs_EvtNum" % ts, TOTAL_EVENTS, 0.5, TOTAL_EVENTS_binMax, title="HB QC Scan  TS %d;Event number;Charge[fC]" % ts)  
                                 book.fill((evt, charge), "TS_%d_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts,slot,fib,fibCh), TOTAL_EVENTS, 0.5, TOTAL_EVENTS_binMax, title="HB QC Scan  Slot %d Fiber %d Ch %d  TS %d;Event number;Charge [fC]" % (slot, fib, fibCh, ts)) 
-                            if ts > 0 and evt <= uniqueIDRange_max and evt >= uniqueIDRange_min:
-                                book.fill((fibCh,adc),"UniqueID_Slot_%d_Fib_%d" % (slot,fib),16,0.5,16.5,title="")
-                                book.fill((fibCh+8,tdc),"UniqueID_Slot_%d_Fib_%d" % (slot,fib),16,0.5,16.5,title="")
-                         
-                            
-                            elif ts > 0 and evt <= pedestalRange_max and evt >= pedestalRange_min:
-                                book.fill((evt, charge), "pedestal_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (slot,fib,fibCh), pedestalRange_events, pedestalRange_binMin, pedestalRange_binMax, title="HB Pedestal Run  Slot %d Fiber %d Ch %d  TS 1-7;Event number;Charge [fC]" % (slot, fib, fibCh))  
+                                if ts > 0 and evt <= uniqueIDRange_max and evt >= uniqueIDRange_min:
+                                    book.fill((fibCh,adc),"UniqueID_Slot_%d_Fib_%d" % (slot,fib),16,0.5,16.5,title="")
+                                    book.fill((fibCh+8,tdc),"UniqueID_Slot_%d_Fib_%d" % (slot,fib),16,0.5,16.5,title="")
+                             
+                                
+                                elif ts > 0 and evt <= pedestalRange_max and evt >= pedestalRange_min:
+                                    book.fill((evt, charge), "pedestal_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (slot,fib,fibCh), pedestalRange_events, pedestalRange_binMin, pedestalRange_binMax, title="HB Pedestal Run  Slot %d Fiber %d Ch %d  TS 1-7;Event number;Charge [fC]" % (slot, fib, fibCh))  
 
-                            elif evt <= capIDpedestalRange_max and evt >= capIDpedestalRange_min and ts > 0 and ts < 5:       
-                                book.fill((evt, charge), "capID%dpedestal_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts%4, slot, fib, fibCh), capIDpedestalRange_events, capIDpedestalRange_binMin, capIDpedestalRange_binMax, title="HB CapID%dPedestal Scan  Slot %d Fiber %d Ch %d;Event number;Charge [fC]" % (ts%4, slot, fib, fibCh))  
+                                elif evt <= capIDpedestalRange_max and evt >= capIDpedestalRange_min and ts > 0 and ts < 5:       
+                                    book.fill((evt, charge), "capID%dpedestal_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts%4, slot, fib, fibCh), capIDpedestalRange_events, capIDpedestalRange_binMin, capIDpedestalRange_binMax, title="HB CapID%dPedestal Scan  Slot %d Fiber %d Ch %d;Event number;Charge [fC]" % (ts%4, slot, fib, fibCh))  
 
-                            elif ts > 0 and evt <= pedestalScanRange_max and evt >= pedestalScanRange_min:
-                                book.fill((evt, charge), "pedestalScan_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (slot, fib, fibCh), pedestalScanRange_events, pedestalScanRange_binMin,  pedestalScanRange_binMax, title="HB Pedestal Scan  Slot %d Fiber %d Ch %d  TS 1-7;Event number;Charge [fC]" % (slot, fib, fibCh))  
+                                elif ts > 0 and evt <= pedestalScanRange_max and evt >= pedestalScanRange_min:
+                                    book.fill((evt, charge), "pedestalScan_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (slot, fib, fibCh), pedestalScanRange_events, pedestalScanRange_binMin,  pedestalScanRange_binMax, title="HB Pedestal Scan  Slot %d Fiber %d Ch %d  TS 1-7;Event number;Charge [fC]" % (slot, fib, fibCh))  
 
-                            elif ts == SOI and evt <= iQiScanRange_max and evt >= iQiScanRange_min:
-                                book.fill((evt, charge), "iQiScan_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (slot, fib, fibCh), iQiScanRange_events, iQiScanRange_binMin, iQiScanRange_binMax, title="HB iQi Scan  Slot %d Fiber %d Ch %d  TS %d;Event number;Charge [fC]" % (slot, fib, fibCh, ts))  
-                            
-                            elif ts == SOI and evt <= gselScanRange_max and evt >= gselScanRange_min: 
-                                #gsel = (evt - min(gselScanRange))/100
-                                #charge = getADC_charge(GSEL_CODES[gsel], adc)
-                                book.fill((evt, charge), "gselScan_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (slot, fib, fibCh), gselScanRange_events, gselScanRange_binMin, gselScanRange_binMax, title="HB iQi Gsel Scan  Slot %d Fiber %d Ch %d  TS %d;Event number;Charge [fC]" % (slot, fib, fibCh, ts))  
-
-                            # Phase scan
-                            elif ts > 0 and ts < 4: 
-                                book.fill((evt, charge), "phaseScan_TS_%d_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts, slot, fib, fibCh), phaseScanRange_events, phaseScanRange_binMin, phaseScanRange_binMax, title="HB iQi Phase Scan  Slot %d Fiber %d Ch %d  TS %d;Event number;Charge [fC]" % (slot, fib, fibCh, ts))  
+                                elif ts == SOI and evt <= iQiScanRange_max and evt >= iQiScanRange_min:
+                                    book.fill((evt, charge), "iQiScan_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (slot, fib, fibCh), iQiScanRange_events, iQiScanRange_binMin, iQiScanRange_binMax, title="HB iQi Scan  Slot %d Fiber %d Ch %d  TS %d;Event number;Charge [fC]" % (slot, fib, fibCh, ts))  
+                                
+                                elif ts == SOI and evt <= gselScanRange_max and evt >= gselScanRange_min: 
+                                    #gsel = (evt - min(gselScanRange))/100
+                                    #charge = getADC_charge(GSEL_CODES[gsel], adc)
+                                    book.fill((evt, charge), "gselScan_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (slot, fib, fibCh), gselScanRange_events, gselScanRange_binMin, gselScanRange_binMax, title="HB iQi Gsel Scan  Slot %d Fiber %d Ch %d  TS %d;Event number;Charge [fC]" % (slot, fib, fibCh, ts))  
+                                
+                                # Phase scan
+                                #elif ts > SOI-3 and ts <= SOI and evt >= phaseScanRange_min and evt % 100 > 50:
+                                elif ts > SOI-3 and ts <= SOI and evt >= phaseScanRange_min and (evt - phaseScanRange_min) / 50 % 2:
+                                    phaseEvt = ((evt - phaseScanRange_min)/100)*50 + (evt-1) % 50 + 1
+                                    book.fill(( phaseEvt, charge), "phaseScan_TS_%d_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts, slot, fib, fibCh), phaseScanRange_events, phaseScanRange_binMin, phaseScanRange_binMax, title="HB iQi Phase Scan  Slot %d Fiber %d Ch %d  TS %d;Phase Scan Event;Charge [fC]" % (slot, fib, fibCh, ts))
 
                        #Compute uniqueID once after all linkTestMode runs have been histogrammed
                             if evt == uniqueIDRange_max + 1 and ts == 0 and fibCh == 0:
