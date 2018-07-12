@@ -190,7 +190,7 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
                                 minor = 0
 
                                 # Check for bad link
-                                if len(set(binValues[0:8])) == 1 and binValues[0] == 255:
+                                if (len(set(binValues[0:8])) == 1 and (binValues[0] == 255 or binValues[0] == 0)):
                                     printer.warning("Slot %d Fiber %d linkTestMode Bad Link Error" % (slot,fib))
                                     isError = True
 
