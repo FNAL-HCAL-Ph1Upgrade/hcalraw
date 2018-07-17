@@ -183,7 +183,7 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
                                 isError = False
                                 for b in range(hist.GetNbinsX()):
                                     if (hist.GetBinError(b) != 0) and not isError:
-                                        printer.warning("Slot %d Fiber %d linkTestMode RMS Error" % (slot,fib))
+                                        #printer.warning("Slot %d Fiber %d linkTestMode RMS Error" % (slot,fib))
                                         isError = True
                                     binValues.append(int(hist.GetBinContent(b)))
 
@@ -191,7 +191,7 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
 
                                 # Check for bad link
                                 if len(set(binValues[0:8])) == 1 and (binValues[0] == 255 or binValues[0] == 0):
-                                    printer.warning("Slot %d Fiber %d linkTestMode Bad Link Error" % (slot,fib))
+                                    #printer.warning("Slot %d Fiber %d linkTestMode Bad Link Error" % (slot,fib))
                                     isError = True
 
 
