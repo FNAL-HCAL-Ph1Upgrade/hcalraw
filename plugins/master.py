@@ -170,8 +170,8 @@ def master(raw1={}, raw2={}, book=None, warnQuality=True, fewerHistos=False, **o
                                 
                                 # Phase scan
                                 #elif ts > SOI-3 and ts <= SOI and evt >= phaseScanRange_min and evt % 100 > 50:
-                                elif ts > SOI-3 and ts <= SOI and evt >= phaseScanRange_min and (evt - phaseScanRange_min) / 50 % 2:
-                                    phaseEvt = ((evt - phaseScanRange_min)/100)*50 + (evt-1) % 50 + 1
+                                elif ts > SOI-3 and ts <= SOI and evt >= phaseScanRange_min and (evt - phaseScanRange_min) // 50 % 2:
+                                    phaseEvt = ((evt - phaseScanRange_min)//100)*50 + (evt-1) % 50 + 1
                                     book.fill(( phaseEvt, charge), "phaseScan_TS_%d_Charge_vs_EvtNum_Slot_%d_Fib_%d_Ch_%d" % (ts, slot, fib, fibCh), phaseScanRange_events, phaseScanRange_binMin, phaseScanRange_binMax, title="HB iQi Phase Scan  Slot %d Fiber %d Ch %d  TS %d;Phase Scan Event;Charge [fC]" % (slot, fib, fibCh, ts))
 
                        #Compute uniqueID once after all linkTestMode runs have been histogrammed
